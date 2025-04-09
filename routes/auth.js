@@ -7,6 +7,9 @@ const User = require('../models/User');
 // @route   POST /api/auth/login
 // @desc    Authenticate user & get token
 // @access  Public
+// @route   POST /api/auth/login
+// @desc    Authenticate user & get token
+// @access  Public
 router.post('/login', async (req, res) => {
     const { accessCode, role } = req.body;
     
@@ -30,7 +33,7 @@ router.post('/login', async (req, res) => {
             user: {
                 id: user.id,
                 name: user.name,
-                role: user.role
+                role: user.role  // Make sure role is included here
             }
         };
         

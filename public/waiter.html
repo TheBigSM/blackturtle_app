@@ -744,6 +744,8 @@
         }
         
         // Send order
+        // Send order
+        // Send order
         async function sendOrder() {
             const tableSelect = document.getElementById('tableSelect');
             const tableNumber = tableSelect.value;
@@ -758,6 +760,19 @@
                 return;
             }
 
+            const authToken = localStorage.getItem('authToken');
+            const userRole = localStorage.getItem('userRole');
+            
+            debug(`Auth info - Token: ${authToken ? authToken.substring(0, 10) + '...' : 'none'}, Role: ${userRole}`);
+            
+            if (!authToken) {
+                debug('No auth token found, redirecting to login');
+                alert('Your session has expired. Please log in again.');
+                localStorage.removeItem('userRole');
+                window.location.href = '/work/login?role=waiter';
+                return;
+            }
+
             try {
                 // Create new order object
                 const order = {
@@ -768,26 +783,37 @@
                         price: item.price,
                         quantity: item.quantity
                     })),
-                    timestamp: new Date().toISOString(),
                     status: 'pending'
                 };
 
+                debug(`Sending order data: ${JSON.stringify(order)}`);
+
                 // Send order to the backend server
-                const response = await fetch('http://localhost:3000/api/orders', {
+                const response = await fetch('http://192.168.64.107:3000/api/orders', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'x-auth-token': localStorage.getItem('authToken') // Include the JWT token for authentication
+                        'x-auth-token': authToken
                     },
                     body: JSON.stringify(order)
                 });
 
-                if (!response.ok) {
-                    throw new Error('Failed to send order to the server');
+                // Try to parse response as JSON
+                let errorData;
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    errorData = await response.json();
+                } else {
+                    const text = await response.text();
+                    debug(`Non-JSON response: ${text}`);
+                    errorData = { msg: text };
                 }
 
-                const result = await response.json();
-                console.log('Order saved to MongoDB:', result);
+                if (!response.ok) {
+                    throw new Error(errorData.msg || 'Failed to send order to the server');
+                }
+
+                debug(`Order saved to MongoDB: ${JSON.stringify(errorData)}`);
 
                 // Reset current order
                 currentOrder = [];
@@ -795,10 +821,10 @@
                 updateOrderDisplay();
 
                 // Show success message
-                alert('Order sent to bar successfully!');
+                showMessage('Order sent to bar successfully!');
             } catch (error) {
                 console.error('Error sending order:', error);
-                alert('Error sending order: ' + error.message);
+                showMessage(`Error sending order: ${error.message}`, true);
             }
         }
         

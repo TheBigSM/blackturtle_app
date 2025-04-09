@@ -55,8 +55,8 @@ const OrderSchema = new mongoose.Schema({
 });
 
 // Auto-increment order number
-OrderSchema.pre('save', async function(next) {
-    if (this.isNew) {
+OrderSchema.pre('validate', async function(next) {
+    if (this.isNew && !this.number) {
         try {
             const lastOrder = await this.constructor.findOne({}, {}, { sort: { 'number': -1 } });
             this.number = lastOrder ? lastOrder.number + 1 : 1;

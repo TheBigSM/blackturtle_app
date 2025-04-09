@@ -6,6 +6,7 @@ const Order = require('../models/Order');
 const User = require('../models/User');
 
 // Middleware to authenticate JWT
+// Middleware to authenticate JWT
 const auth = (req, res, next) => {
     const token = req.header('x-auth-token');
     
@@ -16,6 +17,7 @@ const auth = (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
         req.user = decoded.user;
+        console.log('Authenticated user:', req.user); // Add this for debugging
         next();
     } catch (err) {
         res.status(401).json({ msg: 'Token is not valid' });
@@ -27,9 +29,22 @@ const auth = (req, res, next) => {
 // @access  Private (waiter only)
 router.post('/', auth, async (req, res) => {
     try {
-        // Check if user is a waiter
-        if (req.user.role !== 'waiter') {
-            return res.status(403).json({ msg: 'Not authorized' });
+        // Debug authentication info
+        console.log('POST /api/orders - User info:', {
+            id: req.user.id,
+            name: req.user.name,
+            role: req.user.role,
+            isWaiter: req.user.role === 'waiter',
+            roleType: typeof req.user.role
+        });
+        
+        // More flexible role check
+        const userRole = String(req.user.role).trim().toLowerCase();
+        console.log('Normalized role:', userRole);
+        
+        if (userRole !== 'waiter') {
+            console.log('Authorization failed: Expected "waiter", got:', userRole);
+            return res.status(403).json({ msg: 'Not authorized - waiter role required' });
         }
         
         const { table, items } = req.body;
@@ -48,11 +63,12 @@ router.post('/', auth, async (req, res) => {
         
         // Save to database
         const order = await newOrder.save();
+        console.log('Order saved successfully:', order._id);
         
         res.json(order);
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
+        console.error('Order creation error:', err);
+        res.status(500).json({ msg: 'Server error', error: err.message });
     }
 });
 
@@ -131,17 +147,42 @@ router.put('/:id/status', auth, async (req, res) => {
     try {
         const { status } = req.body;
         
+        // Debug authentication info
+        console.log('PUT /api/orders/:id/status - User info:', {
+            id: req.user.id,
+            name: req.user.name,
+            role: req.user.role,
+            requestedStatus: status
+        });
+        
         if (!status) {
             return res.status(400).json({ msg: 'Please provide status' });
         }
         
-        // Validate status based on role
-        if (req.user.role === 'bartender' && !['in-progress', 'completed'].includes(status)) {
-            return res.status(403).json({ msg: 'Bartenders can only set orders to in-progress or completed' });
-        }
+        // Normalize role for comparison (to handle case sensitivity or whitespace)
+        const userRole = String(req.user.role).trim().toLowerCase();
         
-        if (req.user.role === 'waiter' && !['cancelled'].includes(status)) {
-            return res.status(403).json({ msg: 'Waiters can only cancel orders' });
+        // Validate status based on normalized role
+        if (userRole === 'bartender') {
+            if (!['in-progress', 'completed'].includes(status)) {
+                return res.status(403).json({ 
+                    msg: 'Bartenders can only set orders to in-progress or completed',
+                    debug: { role: userRole, status }
+                });
+            }
+        } else if (userRole === 'waiter') {
+            if (!['cancelled'].includes(status)) {
+                return res.status(403).json({ 
+                    msg: 'Waiters can only cancel orders',
+                    debug: { role: userRole, status }
+                });
+            }
+        } else {
+            console.log('Unknown role:', userRole);
+            return res.status(403).json({ 
+                msg: 'Role not recognized',
+                debug: { role: userRole, status }
+            });
         }
         
         // Find order
@@ -151,8 +192,8 @@ router.put('/:id/status', auth, async (req, res) => {
             return res.status(404).json({ msg: 'Order not found' });
         }
         
-        // Check if waiter is the creator of the order
-        if (req.user.role === 'waiter' && order.createdBy.toString() !== req.user.id) {
+        // Check if waiter is the creator of the order (only applies to waiters)
+        if (userRole === 'waiter' && order.createdBy.toString() !== req.user.id) {
             return res.status(403).json({ msg: 'Not authorized to update this order' });
         }
         
@@ -166,16 +207,17 @@ router.put('/:id/status', auth, async (req, res) => {
         }
         
         await order.save();
+        console.log(`Order ${order._id} status updated to ${status} by ${userRole}`);
         
         res.json(order);
     } catch (err) {
-        console.error(err.message);
+        console.error('Error updating order status:', err.message);
         
         if (err.kind === 'ObjectId') {
             return res.status(404).json({ msg: 'Order not found' });
         }
         
-        res.status(500).send('Server error');
+        res.status(500).json({ msg: 'Server error', error: err.message });
     }
 });
 

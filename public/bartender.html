@@ -288,7 +288,7 @@
             console.log(logMessage);
             
             // Only show debug panel in development
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '192.168.64.107') {
                 debugPanel.style.display = 'block';
                 debugPanel.innerHTML += logMessage + '<br>';
                 
@@ -316,7 +316,10 @@
         }
         
         // Format timestamp
+        // Format timestamp
         function formatTimestamp(timestamp) {
+            if (!timestamp) return 'Unknown time';
+            
             const date = new Date(timestamp);
             const hours = date.getHours().toString().padStart(2, '0');
             const minutes = date.getMinutes().toString().padStart(2, '0');
@@ -324,18 +327,32 @@
         }
         
         // Load orders from backend
+        // Load orders from backend
         async function loadOrders() {
             debug('Loading orders from backend');
             const ordersContainer = document.getElementById('ordersContainer');
             const noOrders = document.getElementById('noOrders');
 
+            if (!ordersContainer) {
+                console.error('Error: ordersContainer element not found');
+                return;
+            }
+
             try {
+                // Get auth token
+                const authToken = localStorage.getItem('authToken');
+                if (!authToken) {
+                    debug('No auth token found, redirecting to login');
+                    window.location.href = '/work/login?role=bartender';
+                    return;
+                }
+
                 // Fetch orders from the backend
-                const response = await fetch('http://localhost:3000/api/orders', {
+                const response = await fetch('http://192.168.64.107:3000/api/orders', {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
-                        'x-auth-token': localStorage.getItem('authToken') // Include JWT token for authentication
+                        'x-auth-token': authToken
                     }
                 });
 
@@ -348,31 +365,36 @@
 
                 // Update the UI
                 if (orders.length === 0) {
-                    noOrders.style.display = 'block';
-                    ordersContainer.innerHTML = '';
-                    ordersContainer.appendChild(noOrders);
+                    if (noOrders) {
+                        noOrders.style.display = 'block';
+                        ordersContainer.innerHTML = '';
+                        ordersContainer.appendChild(noOrders);
+                    } else {
+                        ordersContainer.innerHTML = '<div class="no-orders">No pending orders</div>';
+                    }
 
                     // Update stats
-                    document.getElementById('pendingCount').textContent = '0';
-                    document.getElementById('completedCount').textContent = '0';
+                    const pendingCountEl = document.getElementById('pendingCount');
+                    const completedCountEl = document.getElementById('completedCount');
+                    
+                    if (pendingCountEl) pendingCountEl.textContent = '0';
+                    if (completedCountEl) completedCountEl.textContent = '0';
                     return;
                 }
 
-                noOrders.style.display = 'none';
-
-                // Sort orders: pending first, then by timestamp (newest first)
-                orders.sort((a, b) => {
-                    if (a.status === 'pending' && b.status !== 'pending') return -1;
-                    if (a.status !== 'pending' && b.status === 'pending') return 1;
-                    return new Date(b.timestamp) - new Date(a.timestamp);
-                });
+                if (noOrders) {
+                    noOrders.style.display = 'none';
+                }
 
                 // Count stats
                 const pendingCount = orders.filter(order => order.status === 'pending').length;
                 const completedCount = orders.filter(order => order.status === 'completed').length;
 
-                document.getElementById('pendingCount').textContent = pendingCount;
-                document.getElementById('completedCount').textContent = completedCount;
+                const pendingCountEl = document.getElementById('pendingCount');
+                const completedCountEl = document.getElementById('completedCount');
+                
+                if (pendingCountEl) pendingCountEl.textContent = pendingCount;
+                if (completedCountEl) completedCountEl.textContent = completedCount;
 
                 // Generate HTML for orders
                 let ordersHTML = '';
@@ -382,17 +404,14 @@
                         return; // Skip old completed orders
                     }
 
-                    // Calculate total items
-                    const totalItems = order.items.reduce((sum, item) => sum + item.quantity, 0);
-
                     ordersHTML += `
-                        <div class="order-card ${order.status === 'completed' ? 'completed-order' : ''}" id="order-${order.id}">
+                        <div class="order-card ${order.status === 'completed' ? 'completed-order' : ''}" id="order-${order._id}">
                             <div class="order-header">
                                 <div>
                                     <div class="order-id">Order #${order.number} 
                                         ${order.status === 'pending' ? '<span class="pending-badge">Pending</span>' : ''}
                                     </div>
-                                    <div class="order-timestamp">Received at ${formatTimestamp(order.timestamp)}</div>
+                                    <div class="order-timestamp">Received at ${formatTimestamp(order.createdAt)}</div>
                                 </div>
                                 <div class="order-table">Table ${order.table}</div>
                             </div>
@@ -408,7 +427,7 @@
                             
                             ${order.status === 'pending' ? `
                                 <div class="order-actions">
-                                    <button class="complete-btn" onclick="completeOrder('${order.id}')">Mark as Complete</button>
+                                    <button class="complete-btn" onclick="completeOrder('${order._id}')">Mark as Complete</button>
                                 </div>
                             ` : ''}
                         </div>
@@ -418,27 +437,33 @@
                 ordersContainer.innerHTML = ordersHTML;
             } catch (error) {
                 console.error('Error loading orders:', error);
-                alert('Error loading orders: ' + error.message);
             }
         }
         
         // Mark order as complete
+        // Mark order as complete
         async function completeOrder(orderId) {
             debug(`Marking order ${orderId} as complete`);
 
+            if (!orderId) {
+                console.error('Cannot complete order: orderId is undefined');
+                return;
+            }
+
             try {
                 // Send status update to the backend
-                const response = await fetch(`http://localhost:3000/api/orders/${orderId}/status`, {
+                const response = await fetch(`http://192.168.64.107:3000/api/orders/${orderId}/status`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
-                        'x-auth-token': localStorage.getItem('authToken') // Include JWT token for authentication
+                        'x-auth-token': localStorage.getItem('authToken')
                     },
                     body: JSON.stringify({ status: 'completed' })
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to update order status');
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.msg || 'Failed to update order status');
                 }
 
                 debug(`Order ${orderId} marked as complete`);
@@ -470,7 +495,7 @@
             // Setup Socket.io if available
             if (window.io) {
                 debug('Setting up Socket.io connection');
-                socket = io();
+                socket = io('http://192.168.64.107:3000');
                 window.socket = socket;
 
                 socket.on('connect', () => {

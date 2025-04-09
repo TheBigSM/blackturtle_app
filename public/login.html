@@ -107,30 +107,60 @@
         document.getElementById('roleDisplay').textContent = role.charAt(0).toUpperCase() + role.slice(1) + ' Login';
         
         // Handle form submission
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
+        // Handle form submission
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const accessCode = document.getElementById('accessCode').value;
+            const errorMessage = document.getElementById('errorMessage');
             
-            // Simple code validation (replace with server-side validation)
-            let isValid = false;
-            
-            if (role === 'waiter' && accessCode === 'waiter123') {
-                isValid = true;
-            } else if (role === 'bartender' && accessCode === 'bar123') {
-                isValid = true;
-            }
-            
-            if (isValid) {
-                // Store role in localStorage
+            try {
+                console.log("Attempting to log in as:", role, "with access code");
+                
+                // Call the backend authentication API
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        accessCode: accessCode,
+                        role: role
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.msg || 'Authentication failed');
+                }
+                
+                console.log("Login successful, token received:", data.token);
+
+                try {
+                    const tokenParts = data.token.split('.');
+                    const tokenPayload = JSON.parse(atob(tokenParts[1]));
+                    console.log("Token payload:", tokenPayload);
+                } catch(e) {
+                    console.error("Error decoding token:", e);
+                }
+                
+                // Store the JWT token and user role
+                localStorage.setItem('authToken', data.token);
                 localStorage.setItem('userRole', role);
-                console.log("Setting userRole to:", role);
+                
+                console.log("Stored authToken and userRole in localStorage");
+                
+                // Just to verify, log what's in localStorage
+                console.log("After storing - authToken:", localStorage.getItem('authToken'));
+                console.log("After storing - userRole:", localStorage.getItem('userRole'));
                 
                 // Redirect to appropriate dashboard
                 window.location.href = `/work/${role}`;
-            } else {
-                // Show error message
-                document.getElementById('errorMessage').style.display = 'block';
+            } catch (error) {
+                console.error('Login error:', error);
+                errorMessage.textContent = error.message || 'Invalid credentials. Please try again.';
+                errorMessage.style.display = 'block';
             }
         });
     </script>
