@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waiter Dashboard - The Black Turtle</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+        }
+        
+        .menu-panel {
+            flex: 2;
+            padding: 20px;
+            background-color: #f5f5f5;
+            overflow-y: auto;
+        }
+        
+        .order-panel {
+            flex: 1;
+            padding: 20px;
+            background-color: #ffffff;
+            border-left: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .category-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .category-tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .category-tab.active {
+            border-bottom-color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .menu-item {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .menu-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .item-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .item-price {
+            color: #777;
+        }
+        
+        .order-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .order-items {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 200px;
+        }
+        
+        .order-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #f5f5f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .order-item-name {
+            flex: 1;
+        }
+        
+        .order-item-controls {
+            display: flex;
+            align-items: center;
+        }
+        
+        .btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background-color: #f5f5f5;
+            cursor: pointer;
+            margin: 0 5px;
+            font-size: 18px;
+        }
+        
+        .remove-btn {
+            color: #e74c3c;
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+        }
+        
+        .order-footer {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .order-total {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        select, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        button.send-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 12px;
+        }
+        
+        button.send-btn:disabled {
+            background-color: #ddd;
+            cursor: not-allowed;
+        }
+        
+        .message-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #4CAF50;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .message-bar.error {
+            background: #e74c3c;
+        }
+        
+        #debug {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+            font-size: 12px;
+            max-width: 400px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        
+        .empty-message {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+        }
+
+        .suboptions-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            z-index: 1000;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .suboption-item {
+            padding: 10px;
+            border-bottom: 1px solid #f5f5f5;
+            cursor: pointer;
+        }
+
+        .suboption-item:last-child {
+            border-bottom: none;
+        }
+
+        .suboption-item:hover {
+            background-color: #f9f9f9;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .menu-panel, .order-panel {
+                flex: none;
+                width: 100%;
+                padding: 10px;
+            }
+
+            .category-tabs {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .category-tab {
+                flex: 1 1 auto;
+                text-align: center;
+                padding: 8px;
+                font-size: 14px;
+            }
+
+            .menu-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 10px;
+            }
+
+            .menu-item {
+                padding: 10px;
+                font-size: 14px;
+            }
+
+            .order-title {
+                font-size: 18px;
+            }
+
+            .order-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .order-item-controls {
+                margin-top: 5px;
+            }
+
+            select, button {
+                font-size: 14px;
+                padding: 8px;
+            }
+
+            .message-bar {
+                font-size: 14px;
+                padding: 8px;
+            }
+        }
+
+        /* Adjust grid layout for smaller screens */
+        @media (max-width: 480px) {
+            .menu-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+
+            .menu-item {
+                font-size: 12px;
+                padding: 8px;
+            }
+
+            body {
+                font-size: 14px;
+            }
+
+            .item-name, .item-price {
+                font-size: 12px;
+            }
+
+            .order-title {
+                font-size: 16px;
+            }
+
+            .order-item-name {
+                font-size: 14px;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <div id="messageBar" class="message-bar"></div>
+    
+    <div class="menu-panel">
+        <div class="category-tabs">
+            <div class="category-tab active" data-category="toceno">Točena piva</div>
+            <div class="category-tab" data-category="flasa">Piva u flaši</div>
+            <div class="category-tab" data-category="vina">Vina</div>
+            <div class="category-tab" data-category="rakija">Rakija</div>
+            <div class="category-tab" data-category="zestina">Žestina</div>
+            <div class="category-tab" data-category="toplo">Kafe i čajevi</div>
+            <div class="category-tab" data-category="voda">Voda</div>
+            <div class="category-tab" data-category="sokovi">Sokovi</div>
+            <div class="category-tab" data-category="cedjeno">Ceđeni sokovi</div>
+            <div class="category-tab" data-category="supe">Supe u šolji</div>
+            <div class="category-tab" data-category="grickalice">Grickalice</div>
+        </div>
+        
+        <div class="menu-grid" id="menuGrid"></div>
+    </div>
+    
+    <div class="order-panel">
+        <div class="order-title">Current Order</div>
+        
+        <div class="order-items" id="orderItems">
+            <div class="empty-message" id="emptyMessage">No items added yet</div>
+        </div>
+        
+        <div class="order-footer">
+            <div class="order-total">
+                <span>Ukupno:</span>
+                <span id="totalAmount">RSD0.00</span>
+            </div>
+            
+            <select id="tableSelect">
+                <option value="">Select Table</option>
+                <option value="1">Table 1</option>
+                <option value="2">Table 2</option>
+                <option value="3">Table 3</option>
+                <option value="4">Table 4</option>
+                <option value="5">Table 5</option>
+                <option value="6">Table 6</option>
+                <option value="7">Table 7</option>
+                <option value="8">Table 8</option>
+                <option value="9">Table 9</option>
+                <option value="10">Table 10</option>
+                <option value="11">Table 11</option>
+                <option value="12">Table 12</option>
+                <option value="13">Table 13</option>
+                <option value="14">Table 14</option>
+                <option value="15">Table 15</option>
+                <option value="16">Table 16</option>
+                <option value="17">Table 17</option>
+                <option value="18">Table 18</option>
+                <option value="19">Table 19</option>
+                <option value="20">Table 20</option>
+                <option value="21">Table 21</option>
+                <option value="22">Table 22</option>
+            </select>
+            
+            <button class="send-btn" id="sendOrderBtn" disabled>Send to Bar</button>
+        </div>
+    </div>
+    
+    <script>
+        // Menu data
+        const menuData = {
+            toceno: [
+                { id: 't1', name: 'Svetlo 0.3', price: 280.00 },
+                { id: 't2', name: 'Svetlo 0.5', price: 340.00 },
+                { id: 't3', name: 'Svetlo 1.0', price: 640.00 },
+                { id: 't4', name: 'Tamno 0.3', price: 280.00 },
+                { id: 't5', name: 'Tamno 0.5', price: 340.00 },
+                { id: 't6', name: 'Tamno 1.0', price: 640.00 },
+                { id: 't7', name: 'Borovnica 0.3', price: 280.00 },
+                { id: 't8', name: 'Borovnica 0.5', price: 340.00 },
+                { id: 't9', name: 'Borovnica 1.0', price: 640.00 },
+                { id: 't10', name: 'Jagoda 0.3', price: 280.00 },
+                { id: 't11', name: 'Jagoda 0.5', price: 340.00 },
+                { id: 't12', name: 'Jagoda 1.0', price: 640.00 },
+                { id: 't13', name: 'Sezonsko 0.3', price: 280.00 },
+                { id: 't14', name: 'Sezonsko 0.5', price: 340.00 },
+                { id: 't15', name: 'Sezonsko 1.0', price: 640.00 },
+                { id: 't16', name: 'Kronenberg 0.3', price: 280.00 },
+                { id: 't17', name: 'Kronenberg 0.5', price: 340.00 },
+                { id: 't18', name: 'Kronenberg 1.0', price: 640.00 },
+                { id: 't19', name: 'Asahi 0.3', price: 280.00 },
+                { id: 't20', name: 'Asahi 0.5', price: 340.00 },
+                { id: 't21', name: 'Asahi 1.0', price: 640.00 }
+            ],
+            flasa: [
+                { id: 'f1', name: 'Lav Premium 0.33', price: 330.00 },
+                { id: 'f2', name: 'Carlsberg 0.33', price: 390.00 },
+                { id: 'f3', name: 'Kronenberg 0.33', price: 360.00 },
+                { id: 'f4', name: 'Erdinger 0.33', price: 450.00 },
+                { id: 'f5', name: 'Somersby 0.33', price: 420.00 },
+                { id: 'f6', name: 'Pilsner 0.5', price: 450.00 },
+                { id: 'f7', name: 'Kozel svetli 0.5', price: 450.00 },
+                { id: 'f8', name: 'Kozel tamni 0.5', price: 450.00 },
+                { id: 'f9', name: 'Asahi 0.5', price: 450.00 }
+            ],
+            vina: [
+                { id: 'v1', name: 'Chardonney', price: 400.00 },
+                { id: 'v2', name: 'Rose', price: 400.00 },
+                { id: 'v3', name: 'Vranac', price: 400.00 },
+                { id: 'v4', name: 'Kuvano', price: 290.00 }
+            ],
+            rakija: [
+                { id: 'r1', name: 'Dunja', price: 320.00 },
+                { id: 'r2', name: 'Viljamovka', price: 320.00 },
+                { id: 'r3', name: 'Kajsija', price: 320.00 },
+                { id: 'r4', name: 'Šljiva', price: 300.00 },
+                { id: 'r5', name: 'Medovača', price: 280.00 },
+                { id: 'r6', name: 'Medena malina', price: 280.00 }
+            ],
+            zestina: [
+                { id: 'z1', name: 'Chivas Regal', price: 500.00 },
+                { id: 'z2', name: 'Tullamore Dew', price: 350.00 },
+                { id: 'z3', name: 'Johnnie Walker', price: 320.00 },
+                { id: 'z4', name: 'Ballantines', price: 320.00 },
+                { id: 'z5', name: 'Jack Daniels', price: 410.00 },
+                { id: 'z6', name: 'Jameson', price: 350.00 },
+                { id: 'z7', name: 'Four Roses', price: 350.00 },
+                { id: 'z8', name: 'Absolut Vodka', price: 320.00 },
+                { id: 'z9', name: 'Bacardi', price: 320.00 },
+                { id: 'z10', name: 'Beefetter gin', price: 330.00 },
+                { id: 'z11', name: 'Tequila', price: 320.00 },
+                { id: 'z12', name: 'Amaretto Disarono', price: 320.00 },
+                { id: 'z13', name: 'Amaro Montenegro', price: 320.00 },
+                { id: 'z14', name: 'Jagermeister', price: 320.00 },
+                { id: 'z15', name: 'Campari', price: 320.00 },
+                { id: 'z16', name: 'Ramazzotti', price: 320.00 },
+                { id: 'z17', name: 'Martini', price: 320.00 },
+                { id: 'z18', name: 'Ouzo', price: 320.00 },
+                { id: 'z19', name: 'Pelinkovac', price: 280.00 },
+                { id: 'z20', name: 'Vinjak', price: 280.00 },
+                { id: 'z21', name: 'Aperol', price: 370.00 },
+                { id: 'z22', name: 'Aperol Spritz', price: 600.00 }
+            ],
+            toplo: [
+                { id: 'k1', name: 'Kratki espresso', price: 210.00 },
+                { id: 'k2', name: 'Produženi espresso', price: 210.00 },
+                { id: 'k3', name: 'Espresso sa toplim mlekom', price: 240.00 },
+                { id: 'k4', name: 'Espresso sa hladnim mlekom', price: 240.00 },
+                { id: 'k5', name: 'Kapućino', price: 280.00 },
+                { id: 'k6', name: 'Machiatto', price: 240.00 },
+                { id: 'k7', name: 'XL Espresso sa mlekom', price: 420.00 },
+                { id: 'k8', name: 'Espresso fredo', price: 360.00 },
+                { id: 'k9', name: 'Caffe latte', price: 320.00 },
+                { id: 'k10', name: 'Hladni nes', price: 280.00 },
+                { id: 'k11', name: 'Topli nes', price: 280.00 },
+                { id: 'k12', name: 'Domaća kafa', price: 200.00 },
+                { id: 'k13', name: 'Topla čokolada', price: 320.00, suboptions: [
+                    { id: 'k13-1', name: 'Crna', price: 0.00 },
+                    { id: 'k13-2', name: 'Crna sa narandžom', price: 0.00 },
+                    { id: 'k13-3', name: 'Bela sa lešnikom', price: 0.00 } 
+                ]},
+                { id: 'k14', name: 'Čaj', price: 210.00, suboptions: [
+                    { id: 'k14-1', name: 'Kamilica', price: 0.00 },
+                    { id: 'k14-2', name: 'Nana', price: 0.00 },
+                    { id: 'k14-3', name: 'Hibiskus', price: 0.00 },
+                    { id: 'k14-4', name: 'Zeleni', price: 0.00 },
+                    { id: 'k14-5', name: 'Vonćni', price: 0.00 },
+                    { id: 'k14-6', name: 'Crni', price: 0.00 },
+                    { id: 'k14-7', name: 'Zimski', price: 0.00 }
+                ] },
+                { id: 'k15', name: 'Ronnefeldt LeafCup', price: 280.00 },
+                { id: 'k16', name: 'Med', price: 40.00 },
+                { id: 'k19', name: 'Sojino Mleko', price: 110.00 },
+                { id: 'k20', name: 'Šlag', price: 110.00 }
+            ],
+            voda: [
+                { id: 'a1', name: 'Aqua Viva 0,25l', price: 210.00 },
+                { id: 'a2', name: 'Aqua Viva 1l', price: 390.00 },
+                { id: 'a3', name: 'Voda Voda 0,75l', price: 390.00 },
+                { id: 'a4', name: 'Knjaz Miloš 0.25l', price: 210.00 }
+            ],
+            sokovi: [
+                { id: 's1', name: 'Orangina', price: 350.00 },
+                { id: 's2', name: 'Cockta', price: 280.00 },
+                { id: 's3', name: 'Pepsi', price: 280.00 },
+                { id: 's4', name: 'Pepsi max', price: 280.00 },
+                { id: 's5', name: 'Mirinda', price: 280.00 },
+                { id: 's6', name: '7UP', price: 280.00 },
+                { id: 's7', name: 'Bitter lemon', price: 280.00 },
+                { id: 's8', name: 'Tonic', price: 280.00 },
+                { id: 's9', name: 'Bravo sok flašica', price: 330.00, suboptions: [
+                    { id: 's9-1', name: 'Narandža', price: 0.00 },
+                    { id: 's9-2', name: 'Breskva', price: 0.00 },
+                    { id: 's9-3', name: 'Jabuka', price: 0.00 },
+                    { id: 's9-4', name: 'Jagoda', price: 0.00 },
+                    { id: 's9-5', name: 'Crna ribizla', price: 0.00 }
+                ]},
+                { id: 's10', name: 'Cedevita', price: 300.00 },
+                { id: 's11', name: 'Guarana', price: 300.00 }
+            ],
+            cedjeno: [
+                { id: 'c1', name: 'Limunada', price: 330.00 },
+                { id: 'c2', name: 'Ceđena pomorandža', price: 380.00 },
+                { id: 'c3', name: 'Ceđeni grejp', price: 410.00 },
+                { id: 'c4', name: 'Ceđeni mix', price: 430.00 }
+            ],
+            supe: [
+                { id: 'm1', name: 'Pileća', price: 190.00 },
+                { id: 'm2', name: 'Povrće', price: 190.00 },
+                { id: 'm3', name: 'Paradajz', price: 190.00 },
+                { id: 'm4', name: 'Pečurke', price: 190.00 },
+                { id: 'm5', name: 'Nudle piletina', price: 220.00 },
+                { id: 'm6', name: 'Nudle povrće', price: 220.00 },
+                { id: 'm7', name: 'Nudle govedina', price: 220.00 }
+            ],
+            grickalice: [
+                { id: 'g1', name: 'Kikiriki', price: 110.00 },
+                { id: 'g2', name: 'Mali čips', price: 110.00 },
+                { id: 'g3', name: 'Veliki čips', price: 210.00 },
+                { id: 'g4', name: 'Kokice', price: 140.00 },
+                { id: 'g4', name: '7 Days kroasan', price: 110.00 }
+            ]
+        };
+        
+        // Current order
+        let currentOrder = [];
+        
+        // Debug function
+        function debug(message) {
+            const debugEl = document.getElementById('debug');
+            const now = new Date().toLocaleTimeString();
+            
+            console.log(`[${now}] ${message}`);
+            
+            if (debugEl) {
+                debugEl.innerHTML += `[${now}] ${message}<br>`;
+                debugEl.scrollTop = debugEl.scrollHeight;
+            }
+        }
+        
+        // Show message
+        function showMessage(message, isError = false) {
+            try {
+                const messageBar = document.getElementById('messageBar');
+                if (!messageBar) return;
+                
+                messageBar.textContent = message;
+                
+                if (isError) {
+                    messageBar.classList.add('error');
+                } else {
+                    messageBar.classList.remove('error');
+                }
+                
+                messageBar.style.display = 'block';
+                
+                setTimeout(() => {
+                    messageBar.style.display = 'none';
+                }, 3000);
+                
+                debug(`Message: ${message} (${isError ? 'error' : 'success'})`);
+            } catch (err) {
+                debug(`Error showing message: ${err.message}`);
+                try {
+                    alert(isError ? 'Error: ' + message : message);
+                } catch (e) {
+                    // Last resort
+                    debug('Failed to show any notification');
+                }
+            }
+        }
+        
+        // Load menu items
+        function loadMenuItems(category) {
+            const grid = document.getElementById('menuGrid');
+            grid.innerHTML = '';
+        
+            menuData[category].forEach(item => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'menu-item';
+        
+                itemEl.innerHTML = `
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-price">RSD${item.price.toFixed(2)}</div>
+                `;
+        
+                itemEl.addEventListener('click', () => {
+                    if (item.suboptions) {
+                        showSuboptions(item);
+                    } else {
+                        addToOrder(item);
+                    }
+                });
+        
+                grid.appendChild(itemEl);
+            });
+        
+            debug(`Loaded ${menuData[category].length} items for category: ${category}`);
+        }
+        
+        // Show suboptions
+        function showSuboptions(item) {
+            const suboptionsContainer = document.createElement('div');
+            suboptionsContainer.className = 'suboptions-container';
+
+            item.suboptions.forEach(suboption => {
+                const suboptionEl = document.createElement('div');
+                suboptionEl.className = 'suboption-item';
+
+                suboptionEl.innerHTML = `
+                    <div class="suboption-name">${suboption.name}</div>
+                    <div class="suboption-price">+RSD${suboption.price.toFixed(2)}</div>
+                `;
+
+                suboptionEl.addEventListener('click', () => {
+                    const selectedItem = {
+                        ...item,
+                        name: `${item.name} (${suboption.name})`,
+                        price: item.price + suboption.price
+                    };
+                    addToOrder(selectedItem);
+                    document.body.removeChild(suboptionsContainer);
+                });
+
+                suboptionsContainer.appendChild(suboptionEl);
+            });
+
+            document.body.appendChild(suboptionsContainer);
+        }
+        
+        // Add to order
+        function addToOrder(item) {
+            const existingItem = currentOrder.find(i => i.id === item.id);
+            
+            if (existingItem) {
+                existingItem.quantity++;
+                debug(`Increased quantity of ${item.name} to ${existingItem.quantity}`);
+            } else {
+                currentOrder.push({
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    quantity: 1
+                });
+                debug(`Added new item: ${item.name}`);
+            }
+            
+            updateOrderDisplay();
+        }
+        
+        // Update order display
+        function updateOrderDisplay() {
+            const orderItems = document.getElementById('orderItems');
+            const emptyMessage = document.getElementById('emptyMessage');
+            const totalAmount = document.getElementById('totalAmount');
+            const sendOrderBtn = document.getElementById('sendOrderBtn');
+            
+            debug(`Updating order display with ${currentOrder.length} items`);
+            
+            // Clear previous items
+            orderItems.innerHTML = '';
+            
+            if (currentOrder.length === 0) {
+                if (emptyMessage) {
+                    orderItems.appendChild(emptyMessage);
+                }
+                totalAmount.textContent = 'RSD0.00';
+                sendOrderBtn.disabled = true;
+                return;
+            }
+            
+            let total = 0;
+            
+            // Add each item
+            currentOrder.forEach((item, index) => {
+                total += item.price * item.quantity;
+                
+                const itemEl = document.createElement('div');
+                itemEl.className = 'order-item';
+                
+                itemEl.innerHTML = `
+                    <div class="order-item-name">
+                        ${item.name} - RSD${item.price.toFixed(2)}
+                    </div>
+                    <div class="order-item-controls">
+                        <button class="btn" onclick="decreaseQuantity(${index})">-</button>
+                        <span>${item.quantity}</span>
+                        <button class="btn" onclick="increaseQuantity(${index})">+</button>
+                        <button class="remove-btn" onclick="removeItem(${index})">×</button>
+                    </div>
+                `;
+                
+                orderItems.appendChild(itemEl);
+            });
+            
+            totalAmount.textContent = 'RSD' + total.toFixed(2);
+            sendOrderBtn.disabled = document.getElementById('tableSelect').value === '';
+            
+            debug(`Order display updated. Total: RSD${total.toFixed(2)}`);
+        }
+        
+        // Increase quantity
+        function increaseQuantity(index) {
+            if (index >= 0 && index < currentOrder.length) {
+                currentOrder[index].quantity++;
+                debug(`Increased quantity of ${currentOrder[index].name} to ${currentOrder[index].quantity}`);
+                updateOrderDisplay();
+            }
+        }
+        
+        // Decrease quantity
+        function decreaseQuantity(index) {
+            if (index >= 0 && index < currentOrder.length) {
+                currentOrder[index].quantity--;
+                
+                if (currentOrder[index].quantity <= 0) {
+                    removeItem(index);
+                } else {
+                    debug(`Decreased quantity of ${currentOrder[index].name} to ${currentOrder[index].quantity}`);
+                    updateOrderDisplay();
+                }
+            }
+        }
+        
+        // Remove item
+        function removeItem(index) {
+            if (index >= 0 && index < currentOrder.length) {
+                const name = currentOrder[index].name;
+                currentOrder.splice(index, 1);
+                debug(`Removed item: ${name}`);
+                updateOrderDisplay();
+            }
+        }
+        
+        // Send order
+        async function sendOrder() {
+            const tableSelect = document.getElementById('tableSelect');
+            const tableNumber = tableSelect.value;
+
+            if (currentOrder.length === 0) {
+                alert('Please add items to your order');
+                return;
+            }
+
+            if (!tableNumber) {
+                alert('Please select a table');
+                return;
+            }
+
+            try {
+                // Create new order object
+                const order = {
+                    table: tableNumber,
+                    items: currentOrder.map(item => ({
+                        id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        quantity: item.quantity
+                    })),
+                    timestamp: new Date().toISOString(),
+                    status: 'pending'
+                };
+
+                // Send order to the backend server
+                const response = await fetch('http://localhost:3000/api/orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-auth-token': localStorage.getItem('authToken') // Include the JWT token for authentication
+                    },
+                    body: JSON.stringify(order)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to send order to the server');
+                }
+
+                const result = await response.json();
+                console.log('Order saved to MongoDB:', result);
+
+                // Reset current order
+                currentOrder = [];
+                tableSelect.value = '';
+                updateOrderDisplay();
+
+                // Show success message
+                alert('Order sent to bar successfully!');
+            } catch (error) {
+                console.error('Error sending order:', error);
+                alert('Error sending order: ' + error.message);
+            }
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            debug('Waiter dashboard loaded');
+            
+            // Check login
+            const userRole = localStorage.getItem('userRole');
+            if (!userRole || userRole !== 'waiter') {
+                debug('Not authenticated as waiter');
+                window.location.href = '/work';
+                return;
+            }
+            
+            debug('Authenticated as waiter');
+            
+            // Load default menu
+            loadMenuItems('toceno');
+            
+            // Setup category tabs
+            document.querySelectorAll('.category-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    loadMenuItems(this.dataset.category);
+                });
+            });
+            
+            // Setup table select
+            document.getElementById('tableSelect').addEventListener('change', function() {
+                document.getElementById('sendOrderBtn').disabled = currentOrder.length === 0 || this.value === '';
+                debug('Table selection changed: ' + this.value);
+            });
+            
+            // Setup send button
+            document.getElementById('sendOrderBtn').addEventListener('click', sendOrder);
+        });
+    </script>
+
+</body>
+</html>

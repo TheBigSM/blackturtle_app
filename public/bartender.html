@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bartender Dashboard - The Black Turtle</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        header {
+            background-color: #333;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-weight: bold;
+            font-size: 20px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .user-badge {
+            background-color: #e67e22;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            margin-right: 15px;
+        }
+        
+        .logout-btn {
+            background-color: transparent;
+            border: 1px solid white;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .main-container {
+            padding: 20px;
+        }
+        
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .page-title {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .orders-stats {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .stat-box {
+            background-color: white;
+            border-radius: 5px;
+            padding: 10px 15px;
+            display: flex;
+            flex-direction: column;
+            min-width: 100px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #777;
+        }
+        
+        .orders-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .order-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .order-header {
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f9f9f9;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .order-id {
+            font-weight: bold;
+        }
+        
+        .order-table {
+            background-color: #e67e22;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+        
+        .order-timestamp {
+            font-size: 12px;
+            color: #777;
+            margin-top: 5px;
+        }
+        
+        .order-items {
+            padding: 15px;
+        }
+        
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .order-item:last-child {
+            border-bottom: none;
+        }
+        
+        .item-name {
+            flex: 1;
+        }
+        
+        .item-quantity {
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .order-actions {
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-top: 1px solid #eee;
+            text-align: right;
+        }
+        
+        .complete-btn {
+            background-color: #e67e22;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .complete-btn:hover {
+            background-color: #d35400;
+        }
+        
+        .pending-badge {
+            background-color: #e74c3c;
+            color: white;
+            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            margin-left: 10px;
+        }
+        
+        .completed-order {
+            opacity: 0.6;
+        }
+        
+        .fade-out {
+            animation: fadeOut 0.5s forwards;
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.9); }
+        }
+        
+        .no-orders {
+            background-color: white;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            grid-column: 1 / -1;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .no-orders-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #aaa;
+        }
+        
+        .audio-alert {
+            display: none;
+        }
+
+        .debug-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            max-width: 300px;
+            z-index: 1000;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">The Black Turtle</div>
+        <div class="user-info">
+            <div class="user-badge">Bartender</div>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </header>
+    
+    <div class="main-container">
+        <div class="dashboard-header">
+            <div class="page-title">Order Queue</div>
+            <div class="orders-stats">
+                <div class="stat-box">
+                    <div class="stat-value" id="pendingCount">0</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="completedCount">0</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="orders-container" id="ordersContainer">
+            <!-- Orders will be displayed here -->
+            <div class="no-orders" id="noOrders">
+                <div class="no-orders-icon">📭</div>
+                <h3>No pending orders</h3>
+                <p>New orders will appear here as they come in</p>
+            </div>
+        </div>
+    </div>
+    
+    <audio id="newOrderSound">
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-message-incoming-notification-tone-2354.mp3" type="audio/mp3">
+    </audio>
+    
+    <div class="debug-panel" id="debugPanel"></div>
+
+    <script>
+        // Debug function
+        function debug(message) {
+            const debugPanel = document.getElementById('debugPanel');
+            const isObject = typeof message === 'object';
+            
+            if (isObject) {
+                message = JSON.stringify(message, null, 2);
+            }
+            
+            const now = new Date().toLocaleTimeString();
+            const logMessage = `[${now}] ${message}`;
+            
+            console.log(logMessage);
+            
+            // Only show debug panel in development
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                debugPanel.style.display = 'block';
+                debugPanel.innerHTML += logMessage + '<br>';
+                
+                // Keep only the last 10 messages
+                const lines = debugPanel.innerHTML.split('<br>');
+                if (lines.length > 10) {
+                    debugPanel.innerHTML = lines.slice(lines.length - 10).join('<br>');
+                }
+            }
+        }
+
+        debug('Current DOM:', document.body.innerHTML);
+
+        // Check login status
+        function checkLogin() {
+            const userRole = localStorage.getItem('userRole');
+            debug('User role: ' + userRole);
+            
+            if (!userRole || userRole !== 'bartender') {
+                debug('Not authenticated as bartender, redirecting to /work');
+                window.location.href = '/work';
+            } else {
+                debug('Authentication successful');
+            }
+        }
+        
+        // Format timestamp
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            return `${hours}:${minutes}`;
+        }
+        
+        // Load orders from backend
+        async function loadOrders() {
+            debug('Loading orders from backend');
+            const ordersContainer = document.getElementById('ordersContainer');
+            const noOrders = document.getElementById('noOrders');
+
+            try {
+                // Fetch orders from the backend
+                const response = await fetch('http://localhost:3000/api/orders', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-auth-token': localStorage.getItem('authToken') // Include JWT token for authentication
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch orders from the backend');
+                }
+
+                const orders = await response.json();
+                debug(`Fetched ${orders.length} orders from backend`);
+
+                // Update the UI
+                if (orders.length === 0) {
+                    noOrders.style.display = 'block';
+                    ordersContainer.innerHTML = '';
+                    ordersContainer.appendChild(noOrders);
+
+                    // Update stats
+                    document.getElementById('pendingCount').textContent = '0';
+                    document.getElementById('completedCount').textContent = '0';
+                    return;
+                }
+
+                noOrders.style.display = 'none';
+
+                // Sort orders: pending first, then by timestamp (newest first)
+                orders.sort((a, b) => {
+                    if (a.status === 'pending' && b.status !== 'pending') return -1;
+                    if (a.status !== 'pending' && b.status === 'pending') return 1;
+                    return new Date(b.timestamp) - new Date(a.timestamp);
+                });
+
+                // Count stats
+                const pendingCount = orders.filter(order => order.status === 'pending').length;
+                const completedCount = orders.filter(order => order.status === 'completed').length;
+
+                document.getElementById('pendingCount').textContent = pendingCount;
+                document.getElementById('completedCount').textContent = completedCount;
+
+                // Generate HTML for orders
+                let ordersHTML = '';
+
+                orders.forEach(order => {
+                    if (order.status === 'completed' && !order.completedRecently) {
+                        return; // Skip old completed orders
+                    }
+
+                    // Calculate total items
+                    const totalItems = order.items.reduce((sum, item) => sum + item.quantity, 0);
+
+                    ordersHTML += `
+                        <div class="order-card ${order.status === 'completed' ? 'completed-order' : ''}" id="order-${order.id}">
+                            <div class="order-header">
+                                <div>
+                                    <div class="order-id">Order #${order.number} 
+                                        ${order.status === 'pending' ? '<span class="pending-badge">Pending</span>' : ''}
+                                    </div>
+                                    <div class="order-timestamp">Received at ${formatTimestamp(order.timestamp)}</div>
+                                </div>
+                                <div class="order-table">Table ${order.table}</div>
+                            </div>
+                            
+                            <div class="order-items">
+                                ${order.items.map(item => `
+                                    <div class="order-item">
+                                        <div class="item-name">${item.name}</div>
+                                        <div class="item-quantity">x${item.quantity}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            
+                            ${order.status === 'pending' ? `
+                                <div class="order-actions">
+                                    <button class="complete-btn" onclick="completeOrder('${order.id}')">Mark as Complete</button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+
+                ordersContainer.innerHTML = ordersHTML;
+            } catch (error) {
+                console.error('Error loading orders:', error);
+                alert('Error loading orders: ' + error.message);
+            }
+        }
+        
+        // Mark order as complete
+        async function completeOrder(orderId) {
+            debug(`Marking order ${orderId} as complete`);
+
+            try {
+                // Send status update to the backend
+                const response = await fetch(`http://localhost:3000/api/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-auth-token': localStorage.getItem('authToken') // Include JWT token for authentication
+                    },
+                    body: JSON.stringify({ status: 'completed' })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update order status');
+                }
+
+                debug(`Order ${orderId} marked as complete`);
+
+                // Reload orders
+                loadOrders();
+            } catch (error) {
+                console.error('Error completing order:', error);
+                alert('Error completing order: ' + error.message);
+            }
+        }
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('userRole');
+            window.location.href = '/work';
+        }
+        
+        // Initialize
+        let socket;
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check login
+            checkLogin();
+            
+            // Load initial orders
+            loadOrders();
+            
+            // Setup Socket.io if available
+            if (window.io) {
+                debug('Setting up Socket.io connection');
+                socket = io();
+                window.socket = socket;
+
+                socket.on('connect', () => {
+                    debug('Socket.io connected');
+
+                    // Join bartender room
+                    socket.emit('join', 'bartender');
+                    debug('Joined bartender room');
+                });
+
+                socket.on('order_received', (order) => {
+                    debug('New order received via socket.io: ' + JSON.stringify(order));
+
+                    // Reload orders
+                    loadOrders();
+
+                    // Play sound alert
+                    document.getElementById('newOrderSound').play();
+                });
+
+                socket.on('connect_error', (error) => {
+                    debug('Socket.io connection error: ' + error.message);
+                });
+
+                socket.on('disconnect', () => {
+                    debug('Socket.io disconnected');
+                });
+            } else {
+                debug('Socket.io not available, using localStorage only');
+            }
+            
+            // Listen for storage events (when waiter adds orders)
+            window.addEventListener('storage', (e) => {
+                if (e.key === 'orders') {
+                    debug('localStorage "orders" changed');
+                    
+                    // Check for new orders
+                    const newOrders = JSON.parse(e.newValue || '[]');
+                    const oldOrders = JSON.parse(e.oldValue || '[]');
+                    
+                    const newPendingOrders = newOrders.filter(
+                        newOrder => 
+                            newOrder.status === 'pending' && 
+                            !oldOrders.some(oldOrder => oldOrder.id === newOrder.id)
+                    );
+                    
+                    if (newPendingOrders.length > 0) {
+                        debug(`${newPendingOrders.length} new pending orders found`);
+                        
+                        // Play sound alert
+                        document.getElementById('newOrderSound').play();
+                        
+                        // Reload orders
+                        loadOrders();
+                    } else {
+                        // Check for status changes
+                        debug('No new orders, checking for status changes');
+                        loadOrders();
+                    }
+                }
+            });
+            
+            // Refresh orders periodically (every 30 seconds)
+            setInterval(loadOrders, 3000);
+
+            // Add manual refresh button
+            const refreshButton = document.createElement('button');
+            refreshButton.innerHTML = 'Refresh Orders';
+            refreshButton.style.cssText = 'position:fixed; right:20px; bottom:20px; background:#e67e22; color:white; border:none; padding:10px 15px; border-radius:4px; cursor:pointer;';
+            refreshButton.onclick = loadOrders;
+            document.body.appendChild(refreshButton);
+        });
+    </script>
+</body>
+</html>
