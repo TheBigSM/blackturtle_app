@@ -369,7 +369,7 @@
                 }
 
                 // Fetch orders from the backend
-                const response = await fetch(`http://${CONFIG.domain}:${CONFIG.port}/api/orders`, {
+                const response = await fetch(`${CONFIG.baseUrl}/api/orders`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',

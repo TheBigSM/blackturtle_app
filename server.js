@@ -1,22 +1,30 @@
 // Add this after the app initialization but before your routes
 const express = require('express');
 const http = require('http');
+const https = require('https'); // Add HTTPS
 const path = require('path');
 const socketIo = require('socket.io');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const fs = require('fs'); // Add file system module
 
 // Load environment variables
 dotenv.config();
 
 const DOMAIN = process.env.DOMAIN;
 const PORT = process.env.PORT;
-const BASE_URL = `http://${DOMAIN}:${PORT}`;
+const BASE_URL = `https://${DOMAIN}:${PORT}`;
+
+// HTTPS options
+const httpsOptions = {
+    key: fs.readFileSync(path.join(__dirname, 'certs/privkey.pem')),
+    cert: fs.readFileSync(path.join(__dirname, 'certs/fullchain.pem'))
+  };
 
 // Initialize Express app
 const app = express();
-const server = http.createServer(app);
+const server = https.createServer(httpsOptions, app); 
 const io = socketIo(server, {
     cors: {
       origin: "*", // Allow connections from any origin
