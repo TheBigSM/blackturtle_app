@@ -789,7 +789,7 @@
                 debug(`Sending order data: ${JSON.stringify(order)}`);
 
                 // Send order to the backend server
-                const response = await fetch('http://192.168.64.107:3000/api/orders', {
+                const response = await fetch('https://matejaserver.duckdns.org:3000/api/orders', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

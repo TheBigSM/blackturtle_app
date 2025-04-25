@@ -5,6 +5,7 @@ const path = require('path');
 const socketIo = require('socket.io');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const cors = require('cors');
 
 // Load environment variables
 dotenv.config();
@@ -12,7 +13,15 @@ dotenv.config();
 // Initialize Express app
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+const io = socketIo(server, {
+    cors: {
+      origin: "*", // Allow connections from any origin
+      methods: ["GET", "POST"]
+    }
+  });
+
+// Enable CORS for REST endpoints
+app.use(cors());
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
