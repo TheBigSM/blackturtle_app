@@ -230,6 +230,17 @@
             z-index: 1000;
             display: none;
         }
+
+        .item-comment {
+            font-size: 12px;
+            font-style: italic;
+            color: #666;
+            margin-top: 5px;
+            background-color: #fff3e0;
+            padding: 5px 8px;
+            border-radius: 3px;
+            border-left: 3px solid #e67e22;
+        }   
     </style>
 </head>
 <body>
@@ -425,16 +436,18 @@
                                 </div>
                                 <div class="order-table">Table ${order.table}</div>
                             </div>
-                            
+                                                        
                             <div class="order-items">
                                 ${order.items.map(item => `
                                     <div class="order-item">
-                                        <div class="item-name">${item.name}</div>
+                                        <div class="item-name">${item.name}
+                                            ${item.comment ? `<div class="item-comment">${item.comment}</div>` : ''}
+                                        </div>
                                         <div class="item-quantity">x${item.quantity}</div>
                                     </div>
                                 `).join('')}
                             </div>
-                            
+
                             ${order.status === 'pending' ? `
                                 <div class="order-actions">
                                     <button class="complete-btn" onclick="completeOrder('${order._id}')">Mark as Complete</button>

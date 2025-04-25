@@ -23,26 +23,39 @@
         .order-panel {
             flex: 1;
             padding: 20px;
-            background-color: #ffffff;
+            background-color: #f5f5f5;
             border-left: 1px solid #ddd;
             display: flex;
             flex-direction: column;
         }
         
         .category-tabs {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px;
             margin-bottom: 20px;
+            padding-bottom: 10px;
             border-bottom: 1px solid #ddd;
         }
-        
+
         .category-tab {
-            padding: 10px 15px;
+            text-align: center;
+            padding: 10px 5px;
             cursor: pointer;
-            border-bottom: 3px solid transparent;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            transition: all 0.2s ease;
         }
-        
+
+        .category-tab:hover {
+            background-color: #f0f0f0;
+        }
+
         .category-tab.active {
-            border-bottom-color: #4CAF50;
+            background-color: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
             font-weight: bold;
         }
         
@@ -130,6 +143,7 @@
             margin-top: 20px;
             padding-top: 20px;
             border-top: 1px solid #eee;
+            background-color: #f5f5f5; 
         }
         
         .order-total {
@@ -225,28 +239,171 @@
             background-color: #f9f9f9;
         }
 
+        html, body {
+            overflow-x: hidden;
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #tableAreaSelect, #tableSelect {
+            height: 40px;  /* Increased from default */
+            padding: 12px 15px;  /* More padding for better touch targets */
+            font-size: 16px;  /* Larger text */
+            margin-bottom: 12px;  /* More space between elements */
+        }
+
+        /* Add this to your style section */
+        .comment-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0;
+            margin: 0 5px;
+            width: 30px;
+            height: 30px;
+        }
+
+        .item-comment {
+            font-size: 12px;
+            font-style: italic;
+            color: #666;
+            margin-top: 3px;
+            background-color: #f9f9f9;
+            padding: 3px 6px;
+            border-radius: 3px;
+        }
+
+        .comment-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .comment-modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .comment-modal-header {
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .comment-close {
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .comment-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-family: Arial, sans-serif;
+            font-size: 16px; /* Minimum size to prevent auto-zoom */
+            line-height: 1.4;
+        }
+
+        .comment-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .comment-save, .comment-cancel {
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .comment-save {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+        }
+
+        .comment-cancel {
+            background-color: #f1f1f1;
+            border: 1px solid #ddd;
+        }
+
         @media (max-width: 768px) {
+
+            .comment-textarea {
+                font-size: 18px; /* Larger font for mobile */
+                padding: 15px;
+                min-height: 120px;
+            }
+            
+            .comment-modal-content {
+                width: 95%;
+                padding: 25px;
+            }
+            
+            .comment-modal-header {
+                font-size: 18px;
+                margin-bottom: 20px;
+            }
+            
+            .comment-save, .comment-cancel {
+                padding: 12px 20px;
+                font-size: 16px;
+            }
+
             body {
                 flex-direction: column;
                 height: auto;
+                min-height: 100vh;
+                overflow-x: hidden;
             }
 
             .menu-panel, .order-panel {
                 flex: none;
                 width: 100%;
+                max-width: 100%;
                 padding: 10px;
+                box-sizing: border-box;
+                overflow-x: hidden;
             }
 
+            /* Make buttons larger for touch */
+            .btn, .send-btn, select {
+                min-height: 44px; /* Minimum touch target size */
+                font-size: 16px; /* Prevent iOS zoom on focus */
+            }
+            
+            /* Fix for order items */
+            .order-item {
+                width: 100%;
+                box-sizing: border-box;
+            }
+            
             .category-tabs {
-                flex-wrap: wrap;
-                justify-content: center;
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                gap: 5px;
             }
-
+            
             .category-tab {
-                flex: 1 1 auto;
-                text-align: center;
-                padding: 8px;
                 font-size: 14px;
+                padding: 8px 4px;
             }
 
             .menu-grid {
@@ -263,10 +420,6 @@
                 font-size: 18px;
             }
 
-            .order-item {
-                flex-direction: column;
-                align-items: flex-start;
-            }
 
             .order-item-controls {
                 margin-top: 5px;
@@ -280,6 +433,29 @@
             .message-bar {
                 font-size: 14px;
                 padding: 8px;
+            }
+            .order-items {
+                flex: 0 0 auto;
+                overflow-y: visible;
+                max-height: none;
+                margin-bottom: 15px;
+            }
+            
+            /* Make order panel fully scrollable */
+            .order-panel {
+                overflow-y: auto;
+                height: auto;
+                max-height: none;
+            }
+            
+            /* Ensure the order footer stays visible */
+            .order-footer {
+                position: sticky;
+                bottom: 0;
+                background: #f5f5f5; 
+                padding-top: 10px;
+                margin-top: 10px;
+                box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
             }
         }
 
@@ -309,7 +485,17 @@
             .order-item-name {
                 font-size: 14px;
             }
-        }
+
+            .category-tabs {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+                gap: 4px;
+            }
+            
+            .category-tab {
+                font-size: 12px;
+                padding: 6px 3px;
+            }
+        }   
 
     </style>
 </head>
@@ -346,34 +532,21 @@
                 <span>Ukupno:</span>
                 <span id="totalAmount">RSD0.00</span>
             </div>
-            
-            <select id="tableSelect">
-                <option value="">Select Table</option>
-                <option value="1">Table 1</option>
-                <option value="2">Table 2</option>
-                <option value="3">Table 3</option>
-                <option value="4">Table 4</option>
-                <option value="5">Table 5</option>
-                <option value="6">Table 6</option>
-                <option value="7">Table 7</option>
-                <option value="8">Table 8</option>
-                <option value="9">Table 9</option>
-                <option value="10">Table 10</option>
-                <option value="11">Table 11</option>
-                <option value="12">Table 12</option>
-                <option value="13">Table 13</option>
-                <option value="14">Table 14</option>
-                <option value="15">Table 15</option>
-                <option value="16">Table 16</option>
-                <option value="17">Table 17</option>
-                <option value="18">Table 18</option>
-                <option value="19">Table 19</option>
-                <option value="20">Table 20</option>
-                <option value="21">Table 21</option>
-                <option value="22">Table 22</option>
+
+            <select id="tableAreaSelect">
+                <option value="">Izaberi polje</option>
+                <option value="basta-reka">Bašta - reka</option>
+                <option value="basta-zid">Bašta zid</option>
+                <option value="sank">Šank</option>
+                <option value="ulaz">Ulaz</option>
+                <option value="separei">Separei</option>
             </select>
             
-            <button class="send-btn" id="sendOrderBtn" disabled>Send to Bar</button>
+            <select id="tableSelect" style="display: none;">
+                <option value="">Izaberi sto</option>
+            </select>
+            
+            <button class="send-btn" id="sendOrderBtn" disabled>Pošalji porudžbinu</button>
         </div>
     </div>
     
@@ -388,6 +561,47 @@
         console.log('baserUrl:', CONFIG.baseUrl);
         console.log('domain:', CONFIG.domain);
         console.log('port:', CONFIG.port);
+
+        const tableMappings = {
+            'basta-reka': [
+                {value: '1', label: 'Table 1'},
+                {value: '2', label: 'Table 2'},
+                {value: '3', label: 'Table 3'},
+                {value: '4', label: 'Table 4'},
+                {value: '5', label: 'Table 5'},
+                {value: '6', label: 'Table 6'},
+                {value: '7', label: 'Table 7'},
+                {value: '8', label: 'Table 8'}
+            ],
+            'basta-zid': [
+                {value: '9', label: 'Table 9'},
+                {value: '10', label: 'Table 10'},
+                {value: '11', label: 'Table 11'},
+                {value: '12', label: 'Table 12'}
+            ],
+            'sank': [
+                {value: '13', label: 'Table 13'},
+                {value: '14', label: 'Table 14'},
+                {value: '15', label: 'Table 15'},
+                {value: '16', label: 'Table 16'}
+            ],
+            'ulaz': [
+                {value: '17', label: 'Table 17'},
+                {value: '18', label: 'Table 18'},
+                {value: '19', label: 'Table 19'},
+                {value: '20', label: 'Table 20'},
+                {value: '21', label: 'Table 21'},
+                {value: '22', label: 'Table 22'}
+            ],
+            'separei': [
+                {value: '23', label: 'Table 23'},
+                {value: '24', label: 'Table 24'},
+                {value: '25', label: 'Table 25'},
+                {value: '26', label: 'Table 26'},
+                {value: '27', label: 'Table 27'},
+                {value: '28', label: 'Table 28'}
+            ]
+        };
 
         // Menu data
         const menuData = {
@@ -668,6 +882,7 @@
             }
             
             updateOrderDisplay();
+            updateSendButtonState(); 
         }
         
         // Update order display
@@ -703,11 +918,13 @@
                 itemEl.innerHTML = `
                     <div class="order-item-name">
                         ${item.name} - RSD${item.price.toFixed(2)}
+                        ${item.comment ? `<div class="item-comment">${item.comment}</div>` : ''}
                     </div>
                     <div class="order-item-controls">
                         <button class="btn" onclick="decreaseQuantity(${index})">-</button>
                         <span>${item.quantity}</span>
                         <button class="btn" onclick="increaseQuantity(${index})">+</button>
+                        <button class="comment-btn" onclick="addComment(${index})">💬</button>
                         <button class="remove-btn" onclick="removeItem(${index})">×</button>
                     </div>
                 `;
@@ -753,7 +970,134 @@
                 updateOrderDisplay();
             }
         }
-        
+
+        const tableAreaSelect = document.getElementById('tableAreaSelect');
+        const tableSelect = document.getElementById('tableSelect');
+
+        tableAreaSelect.addEventListener('change', function() {
+            const selectedArea = this.value;
+            
+            // Reset and hide the table select if no area is selected
+            if (!selectedArea) {
+                tableSelect.style.display = 'none';
+                tableSelect.value = '';
+                document.getElementById('sendOrderBtn').disabled = true;
+                return;
+            }
+            
+            // Populate the table select with tables from the selected area
+            tableSelect.innerHTML = '<option value="">Izaberi sto</option>';
+            
+            tableMappings[selectedArea].forEach(table => {
+                const option = document.createElement('option');
+                option.value = table.value;
+                option.textContent = table.label;
+                tableSelect.appendChild(option);
+            });
+            
+            // Show the table select
+            tableSelect.style.display = 'block';
+            tableSelect.value = '';
+            
+            // Update send button state
+            updateSendButtonState();
+        });
+
+        // Update the table select event listener
+        tableSelect.addEventListener('change', function() {
+            debug('Table selection changed: ' + this.value);
+            updateSendButtonState();
+        });
+
+        // Replace the updateSendButtonState function with this improved version
+        function updateSendButtonState() {
+            const sendOrderBtn = document.getElementById('sendOrderBtn');
+            // Check both conditions: items in order AND table selected
+            const tableValue = document.getElementById('tableSelect').value;
+            const hasItems = currentOrder.length > 0;
+            const hasTable = tableValue !== "";
+            
+            // Only enable if both conditions are met
+            sendOrderBtn.disabled = !(hasItems && hasTable);
+            
+            // Debug info
+            debug(`Button state: hasItems=${hasItems}, hasTable=${hasTable}, tableValue="${tableValue}", disabled=${sendOrderBtn.disabled}`);
+        }
+
+        // Current comment item index
+        let currentCommentIndex = -1;
+
+        // Add comment to order item
+        function addComment(index) {
+            if (index < 0 || index >= currentOrder.length) return;
+            
+            currentCommentIndex = index;
+            const item = currentOrder[index];
+            
+            // Create modal
+            const modal = document.createElement('div');
+            modal.className = 'comment-modal';
+            modal.id = 'commentModal';
+            
+            modal.innerHTML = `
+                <div class="comment-modal-content">
+                    <div class="comment-modal-header">
+                        <span>Add Comment for ${item.name}</span>
+                        <span class="comment-close" onclick="closeCommentModal()">&times;</span>
+                    </div>
+                    <textarea class="comment-textarea" id="commentText" placeholder="Add special instructions...">${item.comment || ''}</textarea>
+                    <div class="comment-buttons">
+                        <button class="comment-cancel" onclick="closeCommentModal()">Cancel</button>
+                        <button class="comment-save" onclick="saveComment()">Save</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Focus the textarea
+            setTimeout(() => {
+                document.getElementById('commentText').focus();
+            }, 100);
+            
+            debug(`Opening comment modal for item ${index}: ${item.name}`);
+        }
+
+        // Close comment modal
+        function closeCommentModal() {
+            const modal = document.getElementById('commentModal');
+            if (modal) {
+                document.body.removeChild(modal);
+            }
+            currentCommentIndex = -1;
+            
+            // Reset the zoom level
+            const viewport = document.querySelector('meta[name="viewport"]');
+            if (viewport) {
+                viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+                
+                // Force redraw to apply zoom reset
+                setTimeout(() => {
+                    window.scrollTo(0, 0);
+                }, 50);
+            }
+        }
+
+        // Save comment
+        function saveComment() {
+            if (currentCommentIndex < 0) return;
+            
+            const commentText = document.getElementById('commentText').value.trim();
+            currentOrder[currentCommentIndex].comment = commentText;
+            
+            debug(`Saved comment for item ${currentCommentIndex}: ${commentText}`);
+            
+            // Close modal
+            closeCommentModal();
+            
+            // Update display
+            updateOrderDisplay();
+        }
         // Send order
         // Send order
         // Send order
@@ -792,7 +1136,8 @@
                         id: item.id,
                         name: item.name,
                         price: item.price,
-                        quantity: item.quantity
+                        quantity: item.quantity,
+                        comment: item.comment || '' // Add this line
                     })),
                     status: 'pending'
                 };
