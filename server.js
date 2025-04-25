@@ -1,4 +1,4 @@
-// server.js
+// Add this after the app initialization but before your routes
 const express = require('express');
 const http = require('http');
 const path = require('path');
@@ -9,6 +9,10 @@ const cors = require('cors');
 
 // Load environment variables
 dotenv.config();
+
+const DOMAIN = process.env.DOMAIN;
+const PORT = process.env.PORT;
+const BASE_URL = `http://${DOMAIN}:${PORT}`;
 
 // Initialize Express app
 const app = express();
@@ -23,6 +27,21 @@ const io = socketIo(server, {
 // Enable CORS for REST endpoints
 app.use(cors());
 
+app.use((req, res, next) => {
+    const originalSend = res.send;
+    
+    res.send = function(body) {
+      if (typeof body === 'string') {
+        // Replace all placeholders, regardless of case
+        body = body.replace(/{{DOMAIN}}/gi, DOMAIN);
+        body = body.replace(/{{PORT}}/gi, PORT);
+        body = body.replace(/{{BASE_URL}}/gi, BASE_URL);
+      }
+      return originalSend.call(this, body);
+    };
+    
+    next();
+  });
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
@@ -70,6 +89,21 @@ app.get('/work/waiter', (req, res) => {
 app.get('/work/bartender', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'bartender.html'));
 });
+
+// Add a config endpoint to provide environment variables to the frontend
+app.get('/config.js', (req, res) => {
+    res.set('Content-Type', 'application/javascript');
+    res.send(`
+        // App configuration from server environment
+        const CONFIG = {
+            domain: "${DOMAIN}",
+            port: "${PORT}",
+            baseUrl: "${BASE_URL}"
+        };
+        console.log('Config loaded from server:', CONFIG);
+    `);
+});
+
 
 // Socket.io for real-time communication
 io.on('connection', (socket) => {
@@ -151,7 +185,9 @@ io.on('connection', (socket) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
+    console.log(`Base URL: ${BASE_URL}`);
+    console.log(`DOMAIN: ${DOMAIN}`);
+
 });

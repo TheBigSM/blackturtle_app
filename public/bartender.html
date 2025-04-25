@@ -272,7 +272,17 @@
     
     <div class="debug-panel" id="debugPanel"></div>
 
+    <script src="/config.js"></script>
     <script>
+        // Check if CONFIG is defined
+        if (typeof CONFIG === 'undefined') {
+            console.error('CONFIG is not defined. Please ensure config.js is loaded correctly.');
+        } else {
+            debug('CONFIG loaded:', CONFIG);
+        }
+        console.log('baserUrl:', CONFIG.baseUrl);
+        console.log('domain:', CONFIG.domain);
+        console.log('port:', CONFIG.port);
         // Debug function
         function debug(message) {
             const debugPanel = document.getElementById('debugPanel');
@@ -348,7 +358,7 @@
                 }
 
                 // Fetch orders from the backend
-                const response = await fetch('https://matejaserver.duckdns.org:3000/api/orders', {
+                const response = await fetch(`http://${CONFIG.domain}:${CONFIG.port}/api/orders`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
@@ -451,8 +461,8 @@
             }
 
             try {
-                // Send status update to the backend
-                const response = await fetch(`https://matejaserver.duckdns.org:3000/api/orders/${orderId}/status`, {
+                    // Send status update to the backend
+                    const response = await fetch(`${CONFIG.baseUrl}/api/orders/${orderId}/status`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -460,7 +470,6 @@
                     },
                     body: JSON.stringify({ status: 'completed' })
                 });
-
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
                     throw new Error(errorData.msg || 'Failed to update order status');
@@ -495,7 +504,7 @@
             // Setup Socket.io if available
             if (window.io) {
                 debug('Setting up Socket.io connection');
-                socket = io('https://matejaserver.duckdns.org:3000');
+                socket = io(CONFIG.baseUrl);
                 window.socket = socket;
 
                 socket.on('connect', () => {
