@@ -753,7 +753,7 @@
                 { id: 'g1', name: 'Kikiriki', price: 110.00 },
                 { id: 'g2', name: 'Mali čips', price: 110.00 },
                 { id: 'g3', name: 'Veliki čips', price: 210.00 },
-                { id: 'g4', name: 'Kokice', price: 140.00 },
+                { id: 'g4', name: 'Kokice', price: 180.00 },
                 { id: 'g4', name: '7 Days kroasan', price: 110.00 }
             ]
         };
@@ -810,32 +810,39 @@
         function loadMenuItems(category) {
             const grid = document.getElementById('menuGrid');
             grid.innerHTML = '';
-        
+
             menuData[category].forEach(item => {
                 const itemEl = document.createElement('div');
                 itemEl.className = 'menu-item';
-        
+
                 itemEl.innerHTML = `
                     <div class="item-name">${item.name}</div>
                     <div class="item-price">RSD${item.price.toFixed(2)}</div>
                 `;
-        
-                itemEl.addEventListener('click', () => {
-                    if (item.suboptions) {
-                        showSuboptions(item);
-                    } else {
-                        addToOrder(item);
+
+                itemEl.addEventListener('click', (event) => {
+                    // Only process clicks if no suboptions are open
+                    if (!isSuboptionsOpen) {
+                        if (item.suboptions) {
+                            showSuboptions(item);
+                        } else {
+                            addToOrder(item);
+                        }
                     }
                 });
-        
+
                 grid.appendChild(itemEl);
             });
-        
+
             debug(`Loaded ${menuData[category].length} items for category: ${category}`);
         }
-        
+        let isSuboptionsOpen = false;
+
         // Show suboptions
         function showSuboptions(item) {
+            // Set flag to indicate suboptions are open
+            isSuboptionsOpen = true;
+            
             const suboptionsContainer = document.createElement('div');
             suboptionsContainer.className = 'suboptions-container';
 
@@ -856,13 +863,32 @@
                     };
                     addToOrder(selectedItem);
                     document.body.removeChild(suboptionsContainer);
+                    isSuboptionsOpen = false; // Reset flag when a selection is made
                 });
 
                 suboptionsContainer.appendChild(suboptionEl);
             });
 
             document.body.appendChild(suboptionsContainer);
+            
+            // Add click event listener to close when clicking outside
+            setTimeout(() => {
+                document.addEventListener('click', function closeOutside(event) {
+                    // Check if the click was outside the suboptions container
+                    if (!suboptionsContainer.contains(event.target)) {
+                        // Remove the container from the document
+                        if (document.body.contains(suboptionsContainer)) {
+                            document.body.removeChild(suboptionsContainer);
+                        }
+                        // Reset the flag
+                        isSuboptionsOpen = false;
+                        // Remove this event listener
+                        document.removeEventListener('click', closeOutside);
+                    }
+                });
+            }, 100); // Small delay to prevent immediate closing
         }
+
         
         // Add to order
         function addToOrder(item) {
