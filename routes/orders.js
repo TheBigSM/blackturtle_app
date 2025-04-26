@@ -39,85 +39,89 @@ const adminOnly = (req, res, next) => {
 // @access  Private (waiter only)
 router.post('/', auth, async (req, res) => {
     try {
-        // Verify waiter role
-        if (req.user.role !== 'waiter') {
-            return res.status(403).json({ msg: 'Not authorized - waiter role required' });
-        }
+        // Get last order to calculate order number
+        const lastOrder = await Order.findOne().sort('-createdAt');
+        const orderNumber = lastOrder ? lastOrder.number + 1 : 1;
         
-        const { table, items } = req.body;
+        // Log the user who's creating the order
+        console.log('Order being created by user:', req.user.id);
         
-        // Validate input
-        if (!table || !items || items.length === 0) {
-            return res.status(400).json({ msg: 'Please provide table number and items' });
-        }
-        
-        // Create new order
-        const newOrder = new Order({
-            table,
-            items,
-            createdBy: req.user.id
+        // Create order with properly assigned createdBy
+        const order = new Order({
+            number: orderNumber,
+            table: req.body.table,
+            items: req.body.items,
+            status: 'pending',
+            createdBy: req.user.id // Make sure this is an ObjectId
         });
         
-        // Save to database
-        const order = await newOrder.save();
+        await order.save();
         
-        res.json(order);
+        // Get the populated order to return
+        const populatedOrder = await Order.findById(order._id).populate('createdBy', 'name username');
+        
+        console.log('Created order with creator:', populatedOrder.createdBy);
+        
+        // Emit socket event
+        if (req.app.io) {
+            req.app.io.to('bartender').emit('order_received', populatedOrder);
+        }
+        
+        res.json(populatedOrder);
     } catch (err) {
-        console.error('Order creation error:', err);
-        res.status(500).json({ msg: 'Server error', error: err.message });
+        console.error('Error creating order:', err);
+        res.status(500).send('Server Error');
     }
 });
+
 
 // @route   GET /api/orders
 // @desc    Get all orders (with optional filters)
 // @access  Private
 router.get('/', auth, async (req, res) => {
     try {
-        const { status, table, waiter, startDate, endDate, limit = 50 } = req.query;
-        
         // Build query object
-        const queryObj = {};
+        const query = {};
         
-        // Add filters if provided
-        if (status) queryObj.status = status;
-        if (table) queryObj.table = table;
-        if (waiter) queryObj.createdBy = waiter;
-        
-        // Add date range filter if provided
-        if (startDate || endDate) {
-            queryObj.createdAt = {};
-            if (startDate) queryObj.createdAt.$gte = new Date(startDate);
-            if (endDate) {
-                // Set endDate to end of day
-                const endDateTime = new Date(endDate);
-                endDateTime.setHours(23, 59, 59, 999);
-                queryObj.createdAt.$lte = endDateTime;
-            }
-        }
-        
-        // Add role-based restrictions (admin can see all orders)
-        if (req.user.role === 'waiter') {
-            queryObj.createdBy = req.user.id;
-        } else if (req.user.role === 'bartender') {
-            // Bartenders can only see pending and completed orders
-            if (queryObj.status) {
-                if (!['pending', 'completed'].includes(queryObj.status)) {
-                    return res.status(403).json({ msg: 'Not authorized to view these orders' });
-                }
+        // Filter by status if provided
+        if (req.query.status) {
+            // Handle comma-separated status values
+            if (req.query.status.includes(',')) {
+                const statuses = req.query.status.split(',');
+                query.status = { $in: statuses };
             } else {
-                queryObj.status = { $in: ['pending', 'completed'] };
+                query.status = req.query.status;
             }
         }
         
-        // Fetch orders with user information
-        const orders = await Order.find(queryObj)
+        // Add role-based restrictions
+        if (req.user.role === 'waiter') {
+            // Waiters can only see their own orders
+            query.createdBy = req.user.id;
+        } else if (req.user.role === 'bartender') {
+            // If no status filter provided, show pending and recently completed
+            if (!req.query.status) {
+                query.status = { $in: ['pending', 'completed'] };
+            }
+        }
+        
+        console.log('Orders query:', query);
+        
+        // Get orders with populated creator information - IMPORTANT FIX HERE
+        const orders = await Order.find(query)
+            .populate('createdBy', 'name username') // Make sure this is working
             .sort({ createdAt: -1 })
-            .limit(parseInt(limit));
+            .limit(100);
+        
+        // Debug log to see if populate is working    
+        if (orders.length > 0) {
+            console.log('First order createdBy:', orders[0].createdBy);
+        }
         
         res.json(orders);
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
+        console.error('Error fetching orders:', err);
+        res.status(500).send('Server Error');
     }
 });
 
@@ -126,15 +130,20 @@ router.get('/', auth, async (req, res) => {
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
     try {
-        const order = await Order.findById(req.params.id);
+        const order = await Order.findById(req.params.id)
+            .populate('createdBy', 'name username'); // Add this line
         
         if (!order) {
             return res.status(404).json({ msg: 'Order not found' });
         }
         
-        // Check if user has access to this order
-        if (req.user.role === 'waiter' && order.createdBy.toString() !== req.user.id) {
-            return res.status(403).json({ msg: 'Not authorized to view this order' });
+        // Check if user has access to this order (for waiters)
+        if (req.user.role === 'waiter') {
+            // Need to compare string representations since createdBy might now be a populated object
+            const createdById = order.createdBy._id ? order.createdBy._id.toString() : order.createdBy.toString();
+            if (createdById !== req.user.id) {
+                return res.status(403).json({ msg: 'Not authorized to view this order' });
+            }
         }
         
         res.json(order);

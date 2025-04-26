@@ -161,7 +161,14 @@
             border-top: 1px solid #eee;
             text-align: right;
         }
-        
+
+        .order-creator {
+            font-size: 12px;
+            color: #e67e22;
+            margin-left: 5px;
+            font-weight: 500;
+        }
+            
         .complete-btn {
             background-color: #e67e22;
             color: white;
@@ -349,6 +356,7 @@
         
         // Load orders from backend
         // Load orders from backend
+        // Update the loadOrders function to fetch all users and map their names to orders
         async function loadOrders() {
             debug('Loading orders from backend');
             const ordersContainer = document.getElementById('ordersContainer');
@@ -368,7 +376,35 @@
                     return;
                 }
 
-                // Fetch orders from the backend
+                // First fetch all users to get their names
+                const usersResponse = await fetch(`${CONFIG.baseUrl}/api/users/names`, {
+                    headers: {
+                        'x-auth-token': authToken
+                    }
+                });
+
+                if (!usersResponse.ok) {
+                    console.warn('Failed to fetch users, will display user IDs instead of names');
+                }
+
+                // Create a map of user IDs to user names
+                const userMap = {};
+                try {
+                    if (usersResponse.ok) {
+                        const users = await usersResponse.json();
+                        debug(`Got ${users.length} users from /api/users/names endpoint`);
+                        users.forEach(user => {
+                            userMap[user._id] = user.name || 'Unknown';
+                            debug(`Mapped user ${user._id} to ${user.name}`);
+                        });
+                    } else {
+                        debug(`Failed to fetch user names: ${usersResponse.status} ${usersResponse.statusText}`);
+                    }
+                } catch (error) {
+                    console.warn('Error parsing users response:', error);
+                }
+
+                // Now fetch orders
                 const response = await fetch(`${CONFIG.baseUrl}/api/orders`, {
                     method: 'GET',
                     headers: {
@@ -419,12 +455,24 @@
 
                 // Generate HTML for orders
                 let ordersHTML = '';
-
+                
+                // Update the creator display section in loadOrders
                 orders.forEach(order => {
                     if (order.status === 'completed' && !order.completedRecently) {
                         return; // Skip old completed orders
                     }
 
+                    // Get creator name from the userMap instead of the order object
+                    let creatorName = 'Unknown';
+                    if (order.createdBy) {
+                        const userId = typeof order.createdBy === 'object' ? 
+                            (order.createdBy._id || order.createdBy) : 
+                            order.createdBy;
+                        
+                        creatorName = userMap[userId] || `User ${userId.substring(0, 6)}...`;
+                    }
+
+                    // Update the order card HTML to show items
                     ordersHTML += `
                         <div class="order-card ${order.status === 'completed' ? 'completed-order' : ''}" id="order-${order._id}">
                             <div class="order-header">
@@ -432,11 +480,14 @@
                                     <div class="order-id">Order #${order.number} 
                                         ${order.status === 'pending' ? '<span class="pending-badge">Pending</span>' : ''}
                                     </div>
-                                    <div class="order-timestamp">Received at ${formatTimestamp(order.createdAt)}</div>
+                                    <div class="order-timestamp">
+                                        Received at ${formatTimestamp(order.createdAt)}
+                                        <span class="order-creator">• Sent by: ${creatorName}</span>
+                                    </div>
                                 </div>
                                 <div class="order-table">Table ${order.table}</div>
                             </div>
-                                                        
+                            
                             <div class="order-items">
                                 ${order.items.map(item => `
                                     <div class="order-item">
@@ -456,10 +507,11 @@
                         </div>
                     `;
                 });
-
+                
                 ordersContainer.innerHTML = ordersHTML;
             } catch (error) {
                 console.error('Error loading orders:', error);
+                ordersContainer.innerHTML = `<div class="error-message">Error loading orders: ${error.message}</div>`;
             }
         }
         

@@ -89,6 +89,29 @@ router.get('/', auth, adminOnly, async (req, res) => {
     }
 });
 
+// @route   GET /api/users/names
+// @desc    Get all user names (minimal info)
+// @access  Private (any authenticated user)
+router.get('/names', auth, async (req, res) => {
+    try {
+        // Only return minimal user info (id, name, username)
+        const users = await User.find()
+            .select('name username')
+            .sort({ name: 1 });
+            
+        // Map to a simple format with just what's needed
+        const userNames = users.map(user => ({
+            _id: user._id,
+            name: user.name || user.username
+        }));
+        
+        res.json(userNames);
+    } catch (err) {
+        console.error('Error getting user names:', err.message);
+        res.status(500).send('Server error');
+    }
+});
+
 // NOW DEFINE ID-BASED ROUTES
 
 // @route   GET /api/users/:id
