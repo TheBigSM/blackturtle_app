@@ -86,64 +86,138 @@
         <div class="role-indicator" id="roleDisplay">Konobar - Login</div>
         <h1>Staff Access</h1>
         
-        <form id="loginForm">
-            <div class="form-group">
-                <label for="accessCode">Access Code</label>
-                <input type="password" id="accessCode" required>
+        <form id="loginForm" novalidate>
+            <!-- Username/password login for waiters and admins -->
+            <div id="credentialsLogin" style="display: none;">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password">
+                </div>
+            </div>
+            
+            <!-- Access code login for bartenders (legacy) -->
+            <div id="accessCodeLogin" style="display: none;">
+                <div class="form-group">
+                    <label for="accessCode">Access Code</label>
+                    <input type="password" id="accessCode" name="accessCode">
+                </div>
             </div>
             
             <button type="submit">Login</button>
             
-            <p class="error-message" id="errorMessage">Invalid access code. Please try again.</p>
+            <p class="error-message" id="errorMessage">Invalid credentials. Please try again.</p>
         </form>
     </div>
 
+    <script src="/config.js"></script>
     <script>
         // Get role from URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const role = urlParams.get('role') || 'waiter';
         
         // Update role display
-        document.getElementById('roleDisplay').textContent = role.charAt(0).toUpperCase() + role.slice(1) + ' Login';
+        document.getElementById('roleDisplay').textContent = 
+            (role.charAt(0).toUpperCase() + role.slice(1)) + ' Login';
         
-        // Handle form submission
-        // Handle form submission
+        // Show appropriate login form based on role
+        if (role === 'bartender') {
+            document.getElementById('accessCodeLogin').style.display = 'block';
+            document.getElementById('credentialsLogin').style.display = 'none';
+        } else {
+            document.getElementById('credentialsLogin').style.display = 'block';
+            document.getElementById('accessCodeLogin').style.display = 'none';
+        }
+        
+        // Remove the old compatibility check - it's causing duplicate event listeners
+        // Only use one form submission handler
+        // Modify the login submission handler
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const accessCode = document.getElementById('accessCode').value;
             const errorMessage = document.getElementById('errorMessage');
+            errorMessage.style.display = 'none'; // Hide any previous error
             
             try {
-                console.log("Attempting to log in as:", role, "with access code");
+                console.log("Attempting to log in as:", role);
+                
+                let loginData = {};
+                
+                // Prepare login data based on role
+                if (role === 'bartender') {
+                    const accessCode = document.getElementById('accessCode').value;
+                    if (!accessCode) {
+                        throw new Error('Please enter your access code');
+                    }
+                    loginData = {
+                        accessCode,
+                        role: 'bartender'  // Explicitly set role
+                    };
+                }else if (role === 'admin') {
+                    // Special handling for admin role
+                    const username = document.getElementById('username').value;
+                    const password = document.getElementById('password').value;
+                    if (!username || !password) {
+                        throw new Error('Please enter both username and password');
+                    }
+                    loginData = {
+                        username,
+                        password,
+                        role: 'admin'  // Explicitly set role
+                    };
+                    
+                    console.log("Admin login attempt with username:", username);
+                } else {
+                    // Default waiter role
+                    const username = document.getElementById('username').value;
+                    const password = document.getElementById('password').value;
+                    if (!username || !password) {
+                        throw new Error('Please enter both username and password');
+                    }
+                    loginData = {
+                        username,
+                        password,
+                        role: 'waiter'  // Explicitly set role
+                    };
+                }
+                
+                console.log("Login data:", { ...loginData, password: '[HIDDEN]' });
                 
                 // Call the backend authentication API
-                const response = await fetch('/api/auth/login', {
+                const response = await fetch(`${CONFIG.baseUrl}/api/auth/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        accessCode: accessCode,
-                        role: role
-                    })
+                    body: JSON.stringify(loginData)
                 });
                 
-                const data = await response.json();
+                let data;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    console.error("Error parsing JSON response:", e);
+                    throw new Error("Server returned an invalid response");
+                }
                 
                 if (!response.ok) {
-                    throw new Error(data.msg || 'Authentication failed');
+                    // Provide more detailed error messages based on the response
+                    if (data && data.msg) {
+                        throw new Error(data.msg);
+                    } else if (response.status === 400) {
+                        throw new Error("Invalid credentials - please check your username and password");
+                    } else if (response.status === 401) {
+                        throw new Error("Unauthorized - you don't have permission to access this role");
+                    } else {
+                        throw new Error(`Authentication failed (${response.status})`);
+                    }
                 }
                 
-                console.log("Login successful, token received:", data.token);
-
-                try {
-                    const tokenParts = data.token.split('.');
-                    const tokenPayload = JSON.parse(atob(tokenParts[1]));
-                    console.log("Token payload:", tokenPayload);
-                } catch(e) {
-                    console.error("Error decoding token:", e);
-                }
+                console.log("Login successful, token received");
                 
                 // Store the JWT token and user role
                 localStorage.setItem('authToken', data.token);
@@ -151,9 +225,8 @@
                 
                 console.log("Stored authToken and userRole in localStorage");
                 
-                // Just to verify, log what's in localStorage
-                console.log("After storing - authToken:", localStorage.getItem('authToken'));
-                console.log("After storing - userRole:", localStorage.getItem('userRole'));
+                // Clear any previous order stats when logging in as a new user
+                localStorage.removeItem('orderStats');
                 
                 // Redirect to appropriate dashboard
                 window.location.href = `/work/${role}`;

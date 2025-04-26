@@ -6,7 +6,6 @@ const Order = require('../models/Order');
 const User = require('../models/User');
 
 // Middleware to authenticate JWT
-// Middleware to authenticate JWT
 const auth = (req, res, next) => {
     const token = req.header('x-auth-token');
     
@@ -16,34 +15,32 @@ const auth = (req, res, next) => {
     
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-        req.user = decoded.user;
-        console.log('Authenticated user:', req.user); // Add this for debugging
+        // The decoded token contains id and role directly, not inside a user object
+        req.user = decoded;  // <-- CHANGED: use decoded directly, not decoded.user
         next();
     } catch (err) {
         res.status(401).json({ msg: 'Token is not valid' });
     }
 };
 
+// Admin-only middleware
+const adminOnly = (req, res, next) => {
+    if (!req.user) {
+        return res.status(401).json({ msg: 'Authentication required' });
+    }
+    
+    if (req.user.role !== 'admin') {
+        return res.status(403).json({ msg: 'Admin access required' });
+    }
+    next();
+};
 // @route   POST /api/orders
 // @desc    Create a new order
 // @access  Private (waiter only)
 router.post('/', auth, async (req, res) => {
     try {
-        // Debug authentication info
-        console.log('POST /api/orders - User info:', {
-            id: req.user.id,
-            name: req.user.name,
-            role: req.user.role,
-            isWaiter: req.user.role === 'waiter',
-            roleType: typeof req.user.role
-        });
-        
-        // More flexible role check
-        const userRole = String(req.user.role).trim().toLowerCase();
-        console.log('Normalized role:', userRole);
-        
-        if (userRole !== 'waiter') {
-            console.log('Authorization failed: Expected "waiter", got:', userRole);
+        // Verify waiter role
+        if (req.user.role !== 'waiter') {
             return res.status(403).json({ msg: 'Not authorized - waiter role required' });
         }
         
@@ -63,7 +60,6 @@ router.post('/', auth, async (req, res) => {
         
         // Save to database
         const order = await newOrder.save();
-        console.log('Order saved successfully:', order._id);
         
         res.json(order);
     } catch (err) {
@@ -77,7 +73,7 @@ router.post('/', auth, async (req, res) => {
 // @access  Private
 router.get('/', auth, async (req, res) => {
     try {
-        const { status, table, limit = 50 } = req.query;
+        const { status, table, waiter, startDate, endDate, limit = 50 } = req.query;
         
         // Build query object
         const queryObj = {};
@@ -85,8 +81,21 @@ router.get('/', auth, async (req, res) => {
         // Add filters if provided
         if (status) queryObj.status = status;
         if (table) queryObj.table = table;
+        if (waiter) queryObj.createdBy = waiter;
         
-        // Add role-based restrictions
+        // Add date range filter if provided
+        if (startDate || endDate) {
+            queryObj.createdAt = {};
+            if (startDate) queryObj.createdAt.$gte = new Date(startDate);
+            if (endDate) {
+                // Set endDate to end of day
+                const endDateTime = new Date(endDate);
+                endDateTime.setHours(23, 59, 59, 999);
+                queryObj.createdAt.$lte = endDateTime;
+            }
+        }
+        
+        // Add role-based restrictions (admin can see all orders)
         if (req.user.role === 'waiter') {
             queryObj.createdBy = req.user.id;
         } else if (req.user.role === 'bartender') {
@@ -100,7 +109,7 @@ router.get('/', auth, async (req, res) => {
             }
         }
         
-        // Fetch orders
+        // Fetch orders with user information
         const orders = await Order.find(queryObj)
             .sort({ createdAt: -1 })
             .limit(parseInt(limit));
@@ -147,41 +156,33 @@ router.put('/:id/status', auth, async (req, res) => {
     try {
         const { status } = req.body;
         
-        // Debug authentication info
-        console.log('PUT /api/orders/:id/status - User info:', {
-            id: req.user.id,
-            name: req.user.name,
-            role: req.user.role,
-            requestedStatus: status
-        });
-        
         if (!status) {
             return res.status(400).json({ msg: 'Please provide status' });
         }
         
-        // Normalize role for comparison (to handle case sensitivity or whitespace)
-        const userRole = String(req.user.role).trim().toLowerCase();
-        
-        // Validate status based on normalized role
-        if (userRole === 'bartender') {
+        // Validate status based on role
+        if (req.user.role === 'bartender') {
             if (!['in-progress', 'completed'].includes(status)) {
                 return res.status(403).json({ 
-                    msg: 'Bartenders can only set orders to in-progress or completed',
-                    debug: { role: userRole, status }
+                    msg: 'Bartenders can only set orders to in-progress or completed'
                 });
             }
-        } else if (userRole === 'waiter') {
+        } else if (req.user.role === 'waiter') {
             if (!['cancelled'].includes(status)) {
                 return res.status(403).json({ 
-                    msg: 'Waiters can only cancel orders',
-                    debug: { role: userRole, status }
+                    msg: 'Waiters can only cancel orders'
+                });
+            }
+        } else if (req.user.role === 'admin') {
+            // Admin can set any status
+            if (!['pending', 'in-progress', 'completed', 'cancelled'].includes(status)) {
+                return res.status(400).json({ 
+                    msg: 'Invalid status value'
                 });
             }
         } else {
-            console.log('Unknown role:', userRole);
             return res.status(403).json({ 
-                msg: 'Role not recognized',
-                debug: { role: userRole, status }
+                msg: 'Role not recognized'
             });
         }
         
@@ -193,7 +194,7 @@ router.put('/:id/status', auth, async (req, res) => {
         }
         
         // Check if waiter is the creator of the order (only applies to waiters)
-        if (userRole === 'waiter' && order.createdBy.toString() !== req.user.id) {
+        if (req.user.role === 'waiter' && order.createdBy.toString() !== req.user.id) {
             return res.status(403).json({ msg: 'Not authorized to update this order' });
         }
         
@@ -207,7 +208,6 @@ router.put('/:id/status', auth, async (req, res) => {
         }
         
         await order.save();
-        console.log(`Order ${order._id} status updated to ${status} by ${userRole}`);
         
         res.json(order);
     } catch (err) {
@@ -222,25 +222,23 @@ router.put('/:id/status', auth, async (req, res) => {
 });
 
 // @route   GET /api/orders/stats/summary
-// @desc    Get order statistics
+// @desc    Get order statistics summary
 // @access  Private (admin only)
-router.get('/stats/summary', auth, async (req, res) => {
+router.get('/stats/summary', auth, adminOnly, async (req, res) => {
     try {
-        // Only admins can access stats
-        if (req.user.role !== 'admin') {
-            return res.status(403).json({ msg: 'Not authorized' });
-        }
-        
         const { startDate, endDate } = req.query;
         
         // Build date filter
         const dateFilter = {};
-        if (startDate) {
-            dateFilter.createdAt = { $gte: new Date(startDate) };
-        }
-        if (endDate) {
-            if (!dateFilter.createdAt) dateFilter.createdAt = {};
-            dateFilter.createdAt.$lte = new Date(endDate);
+        if (startDate || endDate) {
+            dateFilter.createdAt = {};
+            if (startDate) dateFilter.createdAt.$gte = new Date(startDate);
+            if (endDate) {
+                // Set endDate to end of day
+                const endDateTime = new Date(endDate);
+                endDateTime.setHours(23, 59, 59, 999);
+                dateFilter.createdAt.$lte = endDateTime;
+            }
         }
         
         // Get total orders
@@ -248,6 +246,7 @@ router.get('/stats/summary', auth, async (req, res) => {
         
         // Get orders by status
         const pendingOrders = await Order.countDocuments({ ...dateFilter, status: 'pending' });
+        const inProgressOrders = await Order.countDocuments({ ...dateFilter, status: 'in-progress' });
         const completedOrders = await Order.countDocuments({ ...dateFilter, status: 'completed' });
         const cancelledOrders = await Order.countDocuments({ ...dateFilter, status: 'cancelled' });
         
@@ -266,13 +265,119 @@ router.get('/stats/summary', auth, async (req, res) => {
             avgCompletionTime = totalTime / completedOrdersWithTime.length / 1000 / 60; // in minutes
         }
         
+        // Get orders by waiter
+        const ordersByWaiter = await Order.aggregate([
+            { $match: dateFilter },
+            { $group: {
+                _id: '$createdBy',
+                count: { $sum: 1 },
+                completed: { 
+                    $sum: { 
+                        $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] 
+                    } 
+                },
+                cancelled: { 
+                    $sum: { 
+                        $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] 
+                    } 
+                }
+            }}
+        ]);
+        
+        // Get orders by table
+        const ordersByTable = await Order.aggregate([
+            { $match: dateFilter },
+            { $group: {
+                _id: '$table',
+                count: { $sum: 1 }
+            }},
+            { $sort: { count: -1 } },
+            { $limit: 10 }
+        ]);
+        
+        // Get orders by day (for chart)
+        const ordersByDay = await Order.aggregate([
+            { $match: dateFilter },
+            {
+                $group: {
+                    _id: { 
+                        $dateToString: { 
+                            format: '%Y-%m-%d', 
+                            date: '$createdAt' 
+                        } 
+                    },
+                    count: { $sum: 1 },
+                    completed: { 
+                        $sum: { 
+                            $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] 
+                        } 
+                    },
+                    cancelled: { 
+                        $sum: { 
+                            $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] 
+                        } 
+                    }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+        
         res.json({
             totalOrders,
             pendingOrders,
+            inProgressOrders,
             completedOrders,
             cancelledOrders,
-            avgCompletionTime: parseFloat(avgCompletionTime.toFixed(2))
+            avgCompletionTime: parseFloat(avgCompletionTime.toFixed(2)),
+            ordersByWaiter,
+            ordersByTable,
+            ordersByDay
         });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
+// @route   GET /api/orders/popular-items
+// @desc    Get popular items statistics
+// @access  Private (admin only)
+router.get('/popular-items', auth, adminOnly, async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        
+        // Build date filter
+        const dateFilter = {};
+        if (startDate || endDate) {
+            dateFilter.createdAt = {};
+            if (startDate) dateFilter.createdAt.$gte = new Date(startDate);
+            if (endDate) {
+                // Set endDate to end of day
+                const endDateTime = new Date(endDate);
+                endDateTime.setHours(23, 59, 59, 999);
+                dateFilter.createdAt.$lte = endDateTime;
+            }
+        }
+        
+        // Get popular items
+        const popularItems = await Order.aggregate([
+            { $match: dateFilter },
+            { $unwind: '$items' },
+            { $group: {
+                _id: '$items.name',
+                totalQuantity: { $sum: '$items.quantity' },
+                totalRevenue: { 
+                    $sum: { 
+                        $multiply: ['$items.price', '$items.quantity'] 
+                    } 
+                },
+                itemCount: { $sum: 1 }
+            }},
+            { $sort: { totalQuantity: -1 } },
+            { $limit: 20 }
+        ]);
+        
+        res.json(popularItems);
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');

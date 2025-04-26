@@ -5,51 +5,89 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 // @route   POST /api/auth/login
-// @desc    Authenticate user & get token
-// @access  Public
-// @route   POST /api/auth/login
-// @desc    Authenticate user & get token
+// @desc    Authenticate user with username/password & get token
 // @access  Public
 router.post('/login', async (req, res) => {
-    const { accessCode, role } = req.body;
-    
     try {
-        // Find user by role
-        const user = await User.findOne({ role, active: true });
+        const { username, password, accessCode, role } = req.body;
         
-        if (!user) {
-            return res.status(400).json({ msg: 'Invalid credentials' });
-        }
+        // Debug log - what credentials are coming in
+        console.log('Login attempt:', { 
+            username, 
+            role, 
+            hasPassword: !!password, 
+            hasAccessCode: !!accessCode 
+        });
         
-        // Check access code
-        const isMatch = await user.checkAccessCode(accessCode);
+        let user;
         
-        if (!isMatch) {
-            return res.status(400).json({ msg: 'Invalid credentials' });
-        }
-        
-        // Create JWT payload
-        const payload = {
-            user: {
-                id: user.id,
-                name: user.name,
-                role: user.role  // Make sure role is included here
+        // For bartender role using access code
+        if (role === 'bartender' && accessCode) {
+            user = await User.findOne({ role: 'bartender' });
+            
+            // Debug - bartender found?
+            console.log('Bartender login:', { found: !!user, userId: user?._id });
+            
+            if (!user || !(await user.checkAccessCode(accessCode))) {
+                // Debug - access code valid?
+                console.log('Access code check failed');
+                return res.status(400).json({ msg: 'Invalid credentials' });
             }
+        } 
+        // For other roles using username/password
+        else if (username && password) {
+            user = await User.findOne({ username });
+            
+            // Debug - user found?
+            console.log('Username login:', { 
+                found: !!user, 
+                userId: user?._id,
+                requestedRole: role,
+                actualRole: user?.role
+            });
+            
+            // Check if user exists and password is correct
+            if (!user || !(await user.checkPassword(password))) {
+                // Debug - which check failed?
+                console.log('Login failed:', { 
+                    userExists: !!user, 
+                    passwordCheck: user ? 'failed' : 'not attempted'
+                });
+                return res.status(400).json({ msg: 'Invalid credentials' });
+            }
+            
+            // Check if role matches (if role is specified)
+            if (role && user.role !== role) {
+                console.log('Role mismatch:', { requested: role, actual: user.role });
+                return res.status(401).json({ msg: 'Unauthorized for this role' });
+            }
+        } else {
+            // Debug - missing credentials
+            console.log('Missing credentials');
+            return res.status(400).json({ msg: 'Please provide valid credentials' });
+        }
+        
+        // Create JWT token
+        const payload = {
+            id: user.id,
+            role: user.role
         };
         
         // Sign token
-        jwt.sign(
-            payload,
-            process.env.JWT_SECRET || 'secret',
-            { expiresIn: '12h' },
-            (err, token) => {
-                if (err) throw err;
-                res.json({ token });
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' });
+        
+        res.json({
+            token,
+            user: {
+                id: user.id,
+                name: user.name,
+                username: user.username,
+                role: user.role
             }
-        );
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
+        });
+    } catch (error) {
+        console.error('Auth error:', error);
+        res.status(500).json({ msg: 'Server error' });
     }
 });
 
@@ -69,7 +107,7 @@ router.get('/me', async (req, res) => {
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
             
             // Find user
-            const user = await User.findById(decoded.user.id).select('-accessCode');
+            const user = await User.findById(decoded.user.id).select('-password -accessCode');
             
             if (!user) {
                 return res.status(404).json({ msg: 'User not found' });

@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - The Black Turtle</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        header {
+            background-color: #333;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-weight: bold;
+            font-size: 20px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .user-badge {
+            background-color: #4CAF50;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            margin-right: 15px;
+        }
+        
+        .logout-btn {
+            background-color: transparent;
+            border: 1px solid white;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+        }
+        
+        .tab.active {
+            background-color: white;
+            border-color: #ddd;
+            border-bottom: 1px solid white;
+            margin-bottom: -1px;
+            font-weight: bold;
+        }
+        
+        .tab:hover:not(.active) {
+            background-color: #f0f0f0;
+        }
+        
+        .tab-content {
+            display: none;
+            background-color: white;
+            border-radius: 5px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-danger {
+            background-color: #e74c3c;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .form-row {
+            margin-bottom: 15px;
+        }
+        
+        .form-row label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-row input, .form-row select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+            overflow: auto;
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            width: 60%;
+            max-width: 500px;
+            border-radius: 5px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .close-btn {
+            cursor: pointer;
+            font-size: 24px;
+        }
+        
+        .order-details {
+            margin-top: 20px;
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        
+        .order-items {
+            margin-top: 10px;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .page-item {
+            margin: 0 5px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .page-item.active {
+            background-color: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+        
+        .page-item:hover:not(.active) {
+            background-color: #f0f0f0;
+        }
+        
+        .search-bar {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        
+        .search-bar input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+        }
+        
+        .search-bar button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+        }
+        
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .filter-select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: white;
+        }
+        
+        .status-pending {
+            background-color: #f39c12;
+        }
+        
+        .status-completed {
+            background-color: #2ecc71;
+        }
+        
+        .status-cancelled {
+            background-color: #e74c3c;
+        }
+        
+        .dashboard-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .stat-label {
+            color: #777;
+            font-size: 14px;
+        }
+        
+        .chart-container {
+            margin-top: 30px;
+            height: 300px;
+            background-color: white;
+            border-radius: 5px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .date-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        .date-filters input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .date-filters label {
+            margin-right: 5px;
+        }
+
+        .date-filter-group {
+            display: flex;
+            align-items: center;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .modal-content {
+                width: 90%;
+                margin: 20% auto;
+            }
+            
+            .tabs {
+                flex-wrap: wrap;
+            }
+            
+            .tab {
+                flex: 1 0 auto;
+                text-align: center;
+                margin-bottom: 5px;
+            }
+            
+            .dashboard-stats {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .dashboard-stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .table-responsive {
+                overflow-x: auto;
+            }
+            
+            th, td {
+                padding: 8px 10px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">The Black Turtle</div>
+        <div class="user-info">
+            <div class="user-badge">Admin</div>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" data-tab="dashboard">Dashboard</div>
+            <div class="tab" data-tab="orders">Orders</div>
+            <div class="tab" data-tab="users">User Management</div>
+        </div>
+        
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <h2>Admin Dashboard</h2>
+            
+            <div class="dashboard-stats">
+                <div class="stat-card">
+                    <div class="stat-label">Total Orders</div>
+                    <div class="stat-value" id="totalOrdersValue">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Pending Orders</div>
+                    <div class="stat-value" id="pendingOrdersValue">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Completed Orders</div>
+                    <div class="stat-value" id="completedOrdersValue">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Cancelled Orders</div>
+                    <div class="stat-value" id="cancelledOrdersValue">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Active Waiters</div>
+                    <div class="stat-value" id="activeWaitersValue">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Average Completion Time</div>
+                    <div class="stat-value" id="avgCompletionTimeValue">-</div>
+                </div>
+            </div>
+            
+            <div class="date-filters">
+                <div class="date-filter-group">
+                    <label for="startDate">From:</label>
+                    <input type="date" id="startDate">
+                </div>
+                <div class="date-filter-group">
+                    <label for="endDate">To:</label>
+                    <input type="date" id="endDate">
+                </div>
+                <button class="btn" onclick="loadDashboardStats()">Apply Filters</button>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="ordersChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Orders Tab -->
+        <div id="orders" class="tab-content">
+            <h2>Order History</h2>
+            
+            <div class="search-bar">
+                <input type="text" id="orderSearchInput" placeholder="Search by table, waiter, or order number...">
+                <button onclick="searchOrders()">Search</button>
+            </div>
+            
+            <div class="filters">
+                <select id="statusFilter" class="filter-select">
+                    <option value="">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="in-progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+                
+                <select id="waiterFilter" class="filter-select">
+                    <option value="">All Waiters</option>
+                    <!-- Will be populated dynamically -->
+                </select>
+                
+                <select id="dateFilter" class="filter-select">
+                    <option value="">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="yesterday">Yesterday</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                </select>
+                
+                <button class="btn" onclick="applyFilters()">Apply Filters</button>
+                <button class="btn" onclick="resetFilters()">Reset</button>
+            </div>
+            
+            <div class="table-responsive">
+                <table id="ordersTable">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Table</th>
+                            <th>Status</th>
+                            <th>Items</th>
+                            <th>Total</th>
+                            <th>Waiter</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody">
+                        <!-- Will be populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="pagination" id="ordersPagination">
+                <!-- Will be populated dynamically -->
+            </div>
+        </div>
+        
+        <!-- User Management Tab -->
+        <div id="users" class="tab-content">
+            <h2>User Management</h2>
+            
+            <button class="btn" onclick="showAddUserModal()">Add New User</button>
+            
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <!-- Will be populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add User Modal -->
+    <div id="addUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Add New User</div>
+                <span class="close-btn" onclick="closeModal('addUserModal')">&times;</span>
+            </div>
+            
+            <form id="addUserForm">
+                <div class="form-row">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                
+                <div class="form-row">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                
+                <div class="form-row">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                
+                <div class="form-row">
+                    <label for="role">Role</label>
+                    <select id="role" name="role" required>
+                        <option value="waiter">Waiter</option>
+                        <option value="bartender">Bartender</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn">Add User</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Edit User Modal -->
+    <div id="editUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Edit User</div>
+                <span class="close-btn" onclick="closeModal('editUserModal')">&times;</span>
+            </div>
+            
+            <form id="editUserForm">
+                <input type="hidden" id="editUserId">
+                
+                <div class="form-row">
+                    <label for="editName">Full Name</label>
+                    <input type="text" id="editName" name="editName" required>
+                </div>
+                
+                <div class="form-row">
+                    <label for="editUsername">Username</label>
+                    <input type="text" id="editUsername" name="editUsername" required>
+                </div>
+                
+                <div class="form-row">
+                    <label for="editPassword">Password (leave blank to keep current)</label>
+                    <input type="password" id="editPassword" name="editPassword">
+                </div>
+                
+                <div class="form-row">
+                    <label for="editRole">Role</label>
+                    <select id="editRole" name="editRole" required>
+                        <option value="waiter">Waiter</option>
+                        <option value="bartender">Bartender</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                
+                <div class="form-row">
+                    <label for="editActive">Status</label>
+                    <select id="editActive" name="editActive" required>
+                        <option value="true">Active</option>
+                        <option value="false">Inactive</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn">Update User</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Order Details Modal -->
+    <div id="orderDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Order Details</div>
+                <span class="close-btn" onclick="closeModal('orderDetailsModal')">&times;</span>
+            </div>
+            
+            <div id="orderDetailsContent">
+                <!-- Will be populated dynamically -->
+            </div>
+        </div>
+    </div>
+    
+    <script src="/config.js"></script>
+    <script src="/chart.min.js"></script>
+    <script>
+        // Global variables
+        let allOrders = [];
+        let filteredOrders = [];
+        let currentOrdersPage = 1;
+        let ordersPerPage = 10;
+        let allUsers = [];
+        let ordersChart;
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication
+            checkAdminAuth();
+            
+            // Setup tab navigation
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Update active tab
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Show corresponding content
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    document.getElementById(this.dataset.tab).classList.add('active');
+                    
+                    // Load content based on tab
+                    if (this.dataset.tab === 'orders') {
+                        loadOrders();
+                    } else if (this.dataset.tab === 'users') {
+                        loadUsers();
+                    } else if (this.dataset.tab === 'dashboard') {
+                        loadDashboardStats();
+                        initializeOrdersChart();
+                    }
+                });
+            });
+            
+            // Load dashboard stats initially
+            loadDashboardStats();
+            initializeOrdersChart();
+            
+            // Setup form submissions
+            document.getElementById('addUserForm').addEventListener('submit', handleAddUser);
+            document.getElementById('editUserForm').addEventListener('submit', handleEditUser);
+            
+            // Set today's date as default for date filters
+            const today = new Date();
+            document.getElementById('endDate').valueAsDate = today;
+            
+            // Set 30 days ago as default start date
+            const startDate = new Date();
+            startDate.setDate(today.getDate() - 30);
+            document.getElementById('startDate').valueAsDate = startDate;
+        });
+        
+        // Authentication check
+        // Authentication check - simplified version
+        function checkAdminAuth() {
+            const authToken = localStorage.getItem('authToken');
+            const userRole = localStorage.getItem('userRole');
+            
+            if (!authToken || userRole !== 'admin') {
+                console.log('No admin token found, redirecting to login');
+                window.location.href = '/work/login?role=admin';
+                return;
+            }
+            
+            // Simple verification - try to access an admin-only endpoint
+            fetch(`${CONFIG.baseUrl}/api/users`, {
+                headers: {
+                    'x-auth-token': authToken
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Admin verification failed');
+                }
+                console.log('Admin authentication verified successfully');
+                // Continue with admin interface setup
+            })
+            .catch(error => {
+                console.error('Admin auth verification error:', error);
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userRole');
+                window.location.href = '/work/login?role=admin';
+            });
+        }
+        // Load dashboard statistics
+        function loadDashboardStats() {
+            const authToken = localStorage.getItem('authToken');
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            let url = `${CONFIG.baseUrl}/api/orders/stats/summary`;
+            
+            // Add date filters if provided
+            if (startDate || endDate) {
+                url += '?';
+                if (startDate) url += `startDate=${startDate}`;
+                if (startDate && endDate) url += '&';
+                if (endDate) url += `endDate=${endDate}`;
+            }
+            
+            fetch(url, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': authToken
+                }
+            })
+            .then(response => response.json())
+            .then(stats => {
+                // Update dashboard stats
+                document.getElementById('totalOrdersValue').textContent = stats.totalOrders;
+                document.getElementById('pendingOrdersValue').textContent = stats.pendingOrders;
+                document.getElementById('completedOrdersValue').textContent = stats.completedOrders;
+                document.getElementById('cancelledOrdersValue').textContent = stats.cancelledOrders;
+                document.getElementById('avgCompletionTimeValue').textContent = `${stats.avgCompletionTime} min`;
+                
+                // Also update the chart
+                updateOrdersChart(stats);
+            })
+            .catch(error => {
+                console.error('Error loading dashboard stats:', error);
+            });
+            
+            // Load active waiters count
+            fetch(`${CONFIG.baseUrl}/api/users/stats`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': authToken
+                }
+            })
+            .then(response => response.json())
+            .then(stats => {
+                document.getElementById('activeWaitersValue').textContent = stats.activeWaiters;
+            })
+            .catch(error => {
+                console.error('Error loading user stats:', error);
+            });
+        }
+        
+        // Initialize orders chart with better error handling
+        function initializeOrdersChart() {
+            try {
+                const ctx = document.getElementById('ordersChart').getContext('2d');
+                ordersChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Total', 'Pending', 'Completed', 'Cancelled'],
+                        datasets: [{
+                            label: 'Orders',
+                            data: [0, 0, 0, 0],
+                            backgroundColor: [
+                                'rgba(54, 162, 235, 0.6)',
+                                'rgba(255, 159, 64, 0.6)',
+                                'rgba(75, 192, 192, 0.6)',
+                                'rgba(255, 99, 132, 0.6)'
+                            ],
+                            borderColor: [
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 159, 64, 1)',
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(255, 99, 132, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Order Statistics'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+                console.log('Chart initialized successfully');
+            } catch (error) {
+                console.error('Error creating chart:', error);
+                document.querySelector('.chart-container').innerHTML = 
+                    '<div style="padding: 20px; text-align: center;">Error creating chart: ' + error.message + '</div>';
+            }
+        }
+        // Separated chart creation function
+        function createChart() {
+            const ctx = document.getElementById('ordersChart').getContext('2d');
+            
+            try {
+                ordersChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Total', 'Pending', 'Completed', 'Cancelled'],
+                        datasets: [{
+                            label: 'Orders',
+                            data: [0, 0, 0, 0],
+                            backgroundColor: [
+                                'rgba(54, 162, 235, 0.6)',
+                                'rgba(255, 159, 64, 0.6)',
+                                'rgba(75, 192, 192, 0.6)',
+                                'rgba(255, 99, 132, 0.6)'
+                            ],
+                            borderColor: [
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 159, 64, 1)',
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(255, 99, 132, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Order Statistics'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error creating chart:', error);
+                document.querySelector('.chart-container').innerHTML = 
+                    '<div style="padding: 20px; text-align: center;">Error creating chart: ' + error.message + '</div>';
+            }
+        }
+
+        // Update the update function to handle missing Chart
+        function updateOrdersChart(stats) {
+            if (typeof ordersChart !== 'undefined' && ordersChart) {
+                try {
+                    ordersChart.data.datasets[0].data = [
+                        stats.totalOrders,
+                        stats.pendingOrders,
+                        stats.completedOrders,
+                        stats.cancelledOrders
+                    ];
+                    ordersChart.update();
+                } catch (error) {
+                    console.error('Error updating chart:', error);
+                }
+            } else {
+                console.log('Chart not initialized, skipping update');
+            }
+        }
+        
+        // Load orders
+        function loadOrders() {
+            const authToken = localStorage.getItem('authToken');
+            
+            fetch(`${CONFIG.baseUrl}/api/orders?limit=1000`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': authToken
+                }
+            })
+            .then(response => response.json())
+            .then(orders => {
+                allOrders = orders;
+                filteredOrders = [...orders];
+                
+                // Populate the waiter filter dropdown
+                populateWaiterFilter();
+                
+                // Display first page of orders
+                displayOrders();
+            })
+            .catch(error => {
+                console.error('Error loading orders:', error);
+            });
+        }
+        
+        // Populate waiter filter dropdown
+        function populateWaiterFilter() {
+            const waiters = new Set();
+            const waiterNames = {};
+            
+            // First, get user info to map IDs to names
+            fetch(`${CONFIG.baseUrl}/api/users`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': localStorage.getItem('authToken')
+                }
+            })
+            .then(response => response.json())
+            .then(users => {
+                // Create map of user IDs to names
+                users.forEach(user => {
+                    waiterNames[user._id] = user.name;
+                });
+                
+                // Extract unique waiter IDs from orders
+                allOrders.forEach(order => {
+                    if (order.createdBy) {
+                        waiters.add(order.createdBy);
+                    }
+                });
+                
+                // Populate dropdown
+                const waiterFilter = document.getElementById('waiterFilter');
+                waiterFilter.innerHTML = '<option value="">All Waiters</option>';
+                
+                waiters.forEach(waiterId => {
+                    const option = document.createElement('option');
+                    option.value = waiterId;
+                    option.textContent = waiterNames[waiterId] || 'Unknown Waiter';
+                    waiterFilter.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading users for waiter filter:', error);
+            });
+        }
+        
+        // Display orders with pagination
+        function displayOrders() {
+            const tableBody = document.getElementById('ordersTableBody');
+            const startIndex = (currentOrdersPage - 1) * ordersPerPage;
+            const endIndex = startIndex + ordersPerPage;
+            const ordersToDisplay = filteredOrders.slice(startIndex, endIndex);
+            
+            // Clear existing rows
+            tableBody.innerHTML = '';
+            
+            // Create user ID to name mapping
+            const userNames = {};
+            fetch(`${CONFIG.baseUrl}/api/users`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': localStorage.getItem('authToken')
+                }
+            })
+            .then(response => response.json())
+            .then(users => {
+                users.forEach(user => {
+                    userNames[user._id] = user.name;
+                });
+                
+                // Populate table with orders
+                ordersToDisplay.forEach(order => {
+                    const row = document.createElement('tr');
+                    
+                    // Calculate total amount
+                    const total = order.items.reduce((sum, item) => {
+                        return sum + (item.price * item.quantity);
+                    }, 0);
+                    
+                    // Get status badge class
+                    const statusClass = `status-${order.status}`;
+                    
+                    // Format date
+                    const orderDate = new Date(order.createdAt);
+                    const formattedDate = `${orderDate.toLocaleDateString()} ${orderDate.toLocaleTimeString()}`;
+                    
+                    // Get waiter name
+                    const waiterName = userNames[order.createdBy] || 'Unknown';
+                    
+                    row.innerHTML = `
+                        <td>${order.number}</td>
+                        <td>${order.table}</td>
+                        <td><span class="status-badge ${statusClass}">${order.status}</span></td>
+                        <td>${order.items.length} items</td>
+                        <td>RSD ${total.toFixed(2)}</td>
+                        <td>${waiterName}</td>
+                        <td>${formattedDate}</td>
+                        <td>
+                            <button class="btn" onclick="viewOrderDetails('${order._id}')">Details</button>
+                        </td>
+                    `;
+                    
+                    tableBody.appendChild(row);
+                });
+                
+                // Update pagination
+                displayPagination();
+            })
+            .catch(error => {
+                console.error('Error loading user names:', error);
+            });
+        }
+        
+        // Display pagination controls
+        function displayPagination() {
+            const pagination = document.getElementById('ordersPagination');
+            const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
+            
+            // Clear existing pagination
+            pagination.innerHTML = '';
+            
+            // Don't show pagination if only one page
+            if (totalPages <= 1) return;
+            
+            // Previous button
+            const prevButton = document.createElement('div');
+            prevButton.className = 'page-item';
+            prevButton.textContent = '←';
+            prevButton.addEventListener('click', () => {
+                if (currentOrdersPage > 1) {
+                    currentOrdersPage--;
+                    displayOrders();
+                }
+            });
+            pagination.appendChild(prevButton);
+            
+            // Page numbers
+            const startPage = Math.max(1, currentOrdersPage - 2);
+            const endPage = Math.min(totalPages, startPage + 4);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageButton = document.createElement('div');
+                pageButton.className = `page-item ${i === currentOrdersPage ? 'active' : ''}`;
+                pageButton.textContent = i;
+                pageButton.addEventListener('click', () => {
+                    currentOrdersPage = i;
+                    displayOrders();
+                });
+                pagination.appendChild(pageButton);
+            }
+            
+            // Next button
+            const nextButton = document.createElement('div');
+            nextButton.className = 'page-item';
+            nextButton.textContent = '→';
+            nextButton.addEventListener('click', () => {
+                if (currentOrdersPage < totalPages) {
+                    currentOrdersPage++;
+                    displayOrders();
+                }
+            });
+            pagination.appendChild(nextButton);
+        }
+        
+        // Apply order filters
+        function applyFilters() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const waiterFilter = document.getElementById('waiterFilter').value;
+            const dateFilter = document.getElementById('dateFilter').value;
+            const searchTerm = document.getElementById('orderSearchInput').value.toLowerCase();
+            
+            // Filter orders
+            filteredOrders = allOrders.filter(order => {
+                // Status filter
+                if (statusFilter && order.status !== statusFilter) {
+                    return false;
+                }
+                
+                // Waiter filter
+                if (waiterFilter && order.createdBy !== waiterFilter) {
+                    return false;
+                }
+                
+                // Date filter
+                if (dateFilter) {
+                    const orderDate = new Date(order.createdAt);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    
+                    if (dateFilter === 'today') {
+                        const tomorrow = new Date(today);
+                        tomorrow.setDate(tomorrow.getDate() + 1);
+                        if (orderDate < today || orderDate >= tomorrow) {
+                            return false;
+                        }
+                    } else if (dateFilter === 'yesterday') {
+                        const yesterday = new Date(today);
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        if (orderDate < yesterday || orderDate >= today) {
+                            return false;
+                        }
+                    } else if (dateFilter === 'week') {
+                        const weekStart = new Date(today);
+                        weekStart.setDate(today.getDate() - today.getDay());
+                        if (orderDate < weekStart) {
+                            return false;
+                        }
+                    } else if (dateFilter === 'month') {
+                        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+                        if (orderDate < monthStart) {
+                            return false;
+                        }
+                    }
+                }
+                
+                // Search filter
+                if (searchTerm) {
+                    const orderNumber = order.number.toString();
+                    const tableNumber = order.table.toString();
+                    
+                    // Search by order number or table
+                    return orderNumber.includes(searchTerm) || tableNumber.includes(searchTerm);
+                }
+                
+                return true;
+            });
+            
+            // Reset to first page and display results
+            currentOrdersPage = 1;
+            displayOrders();
+        }
+        
+        // Search orders
+        function searchOrders() {
+            applyFilters();
+        }
+        
+        // Reset all filters
+        function resetFilters() {
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('waiterFilter').value = '';
+            document.getElementById('dateFilter').value = '';
+            document.getElementById('orderSearchInput').value = '';
+            
+            filteredOrders = [...allOrders];
+            currentOrdersPage = 1;
+            displayOrders();
+        }
+        
+        // View order details
+        function viewOrderDetails(orderId) {
+            const authToken = localStorage.getItem('authToken');
+            
+            fetch(`${CONFIG.baseUrl}/api/orders/${orderId}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': authToken
+                }
+            })
+            .then(response => response.json())
+            .then(order => {
+                // Get user info for waiter name
+                fetch(`${CONFIG.baseUrl}/api/users/${order.createdBy}`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-auth-token': authToken
+                    }
+                })
+                .then(response => response.json())
+                .then(user => {
+                    const waiterName = user ? user.name : 'Unknown';
+                    displayOrderDetails(order, waiterName);
+                })
+                .catch(error => {
+                    console.error('Error loading waiter details:', error);
+                    displayOrderDetails(order, 'Unknown');
+                });
+            })
+            .catch(error => {
+                console.error('Error loading order details:', error);
+            });
+        }
+        
+        // Display order details in modal
+        function displayOrderDetails(order, waiterName) {
+            const modal = document.getElementById('orderDetailsModal');
+            const content = document.getElementById('orderDetailsContent');
+            
+            // Calculate total
+            const total = order.items.reduce((sum, item) => {
+                return sum + (item.price * item.quantity);
+            }, 0);
+            
+            // Format dates
+            const createdDate = new Date(order.createdAt).toLocaleString();
+            const completedDate = order.completedAt ? new Date(order.completedAt).toLocaleString() : 'N/A';
+            
+            // Generate items HTML
+            const itemsHtml = order.items.map(item => {
+                return `
+                    <div class="order-item">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <div><strong>${item.name}</strong> x${item.quantity}</div>
+                            <div>RSD ${(item.price * item.quantity).toFixed(2)}</div>
+                        </div>
+                        ${item.comment ? `<div style="font-style: italic; color: #666;">${item.comment}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+            
+            // Set modal content
+            content.innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    <h3 style="margin: 0 0 15px 0;">Order #${order.number}</h3>
+                    <p><strong>Table:</strong> ${order.table}</p>
+                    <p><strong>Status:</strong> ${order.status}</p>
+                    <p><strong>Waiter:</strong> ${waiterName}</p>
+                    <p><strong>Created:</strong> ${createdDate}</p>
+                    <p><strong>Completed:</strong> ${completedDate}</p>
+                    <p><strong>Total Amount:</strong> RSD ${total.toFixed(2)}</p>
+                </div>
+                
+                <div class="order-details">
+                    <h4 style="margin-top: 0;">Order Items</h4>
+                    <div class="order-items">
+                        ${itemsHtml}
+                    </div>
+                </div>
+            `;
+            
+            // Show modal
+            modal.style.display = 'block';
+        }
+        
+        // Update the loadUsers function to add delete button for all users
+        function loadUsers() {
+            const authToken = localStorage.getItem('authToken');
+            const usersTableBody = document.getElementById('usersTableBody');
+            
+            // Show loading
+            usersTableBody.innerHTML = '<tr><td colspan="6" class="text-center">Loading users...</td></tr>';
+            
+            fetch(`${CONFIG.baseUrl}/api/users`, {
+                headers: {
+                    'x-auth-token': authToken
+                }
+            })
+            .then(response => response.json())
+            .then(users => {
+                // Clear loading message
+                usersTableBody.innerHTML = '';
+                
+                if (users.length === 0) {
+                    usersTableBody.innerHTML = '<tr><td colspan="6" class="text-center">No users found</td></tr>';
+                    return;
+                }
+                
+                users.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.className = user.active ? '' : 'text-muted bg-light';
+                    
+                    const statusBadge = user.active 
+                        ? '<span class="badge bg-success">Active</span>'
+                        : '<span class="badge bg-secondary">Inactive</span>';
+                        
+                    row.innerHTML = `
+                        <td>${user.name}</td>
+                        <td>${user.username}</td>
+                        <td>${user.role.charAt(0).toUpperCase() + user.role.slice(1)}</td>
+                        <td>${statusBadge}</td>
+                        <td>${new Date(user.createdAt).toLocaleString()}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="editUser('${user._id}')">Edit</button>
+                            <button class="btn btn-sm ${user.active ? 'btn-warning' : 'btn-success'}" 
+                                    onclick="toggleUserStatus('${user._id}', ${!user.active})">
+                                ${user.active ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteUser('${user._id}', '${user.username}')">
+                                Delete
+                            </button>
+                        </td>
+                    `;
+                    
+                    usersTableBody.appendChild(row);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading users:', error);
+                usersTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Error loading users</td></tr>';
+            });
+        }
+        // Display users in table
+        function displayUsers() {
+            const tableBody = document.getElementById('usersTableBody');
+            
+            // Clear existing rows
+            tableBody.innerHTML = '';
+            
+            allUsers.forEach(user => {
+                const row = document.createElement('tr');
+                
+                // Format date
+                const createdDate = new Date(user.createdAt).toLocaleDateString();
+                
+                row.innerHTML = `
+                    <td>${user.name}</td>
+                    <td>${user.username}</td>
+                    <td>${user.role.charAt(0).toUpperCase() + user.role.slice(1)}</td>
+                    <td>${user.active ? 'Active' : 'Inactive'}</td>
+                    <td>${createdDate}</td>
+                    <td>
+                        <button class="btn" onclick="editUser('${user._id}')">Edit</button>
+                        <button class="btn btn-danger" onclick="toggleUserStatus('${user._id}', ${!user.active})">
+                            ${user.active ? 'Deactivate' : 'Activate'}
+                        </button>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+        
+        // Show add user modal
+        function showAddUserModal() {
+            document.getElementById('addUserModal').style.display = 'block';
+        }
+        
+        // Show edit user modal
+        function editUser(userId) {
+            const authToken = localStorage.getItem('authToken');
+            
+            // Show loading in the modal
+            const modal = document.getElementById('editUserModal');
+            modal.style.display = 'block';
+            
+            // Fetch the specific user data
+            fetch(`${CONFIG.baseUrl}/api/users/${userId}`, {
+                headers: {
+                    'x-auth-token': authToken
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to load user data');
+                }
+                return response.json();
+            })
+            .then(user => {
+                // Populate form with user data
+                document.getElementById('editUserId').value = user._id;
+                document.getElementById('editName').value = user.name;
+                document.getElementById('editUsername').value = user.username;
+                document.getElementById('editPassword').value = ''; // Clear password field
+                document.getElementById('editRole').value = user.role;
+                document.getElementById('editActive').value = user.active.toString();
+            })
+            .catch(error => {
+                console.error('Error loading user data:', error);
+                closeModal('editUserModal');
+                alert('Error loading user data: ' + error.message);
+            });
+        }
+        
+        // Toggle user active status
+        function toggleUserStatus(userId, setActive) {
+            const authToken = localStorage.getItem('authToken');
+            
+            fetch(`${CONFIG.baseUrl}/api/users/${userId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': authToken
+                },
+                body: JSON.stringify({ active: setActive })
+            })
+            .then(response => response.json())
+            .then(result => {
+                // Reload users
+                loadUsers();
+            })
+            .catch(error => {
+                console.error('Error toggling user status:', error);
+                alert('Error updating user status');
+            });
+        }
+        
+        // Improved deleteUser function with better error handling
+        function deleteUser(userId, username) {
+            // Show a more detailed confirmation message
+            if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) {
+                return;
+            }
+            
+            const authToken = localStorage.getItem('authToken');
+            
+            // First get the user details
+            fetch(`${CONFIG.baseUrl}/api/users/${userId}`, {
+                headers: {
+                    'x-auth-token': authToken
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error('User not found');
+                    }
+                    return response.text().then(text => {
+                        try {
+                            const data = JSON.parse(text);
+                            throw new Error(data.msg || 'Failed to get user details');
+                        } catch (e) {
+                            throw new Error(`Error retrieving user: ${response.status}`);
+                        }
+                    });
+                }
+                return response.json();
+            })
+            .then(user => {
+                // Directly attempt deletion
+                return fetch(`${CONFIG.baseUrl}/api/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-auth-token': authToken
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(text => {
+                            try {
+                                const data = JSON.parse(text);
+                                throw new Error(data.msg || 'Failed to delete user');
+                            } catch (e) {
+                                throw new Error(`Error: ${response.status}`);
+                            }
+                        });
+                    }
+                    return response.json();
+                });
+            })
+            .then(result => {
+                alert(`User "${username}" deleted successfully`);
+                loadUsers(); // Reload the user list
+            })
+            .catch(error => {
+                console.error('Error in delete process:', error);
+                alert(`Error deleting user: ${error.message}`);
+            });
+        }
+
+        // Helper function to perform the actual deletion
+        function performUserDeletion(userId, username, authToken) {
+            return fetch(`${CONFIG.baseUrl}/api/users/${userId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': authToken
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.msg || 'Failed to delete user');
+                    });
+                }
+                return response.json();
+            })
+            .then(result => {
+                alert(`User "${username}" deleted successfully`);
+                loadUsers(); // Reload the user list
+                return { success: true };
+            });
+        }
+
+        function handleEditUser(e) {
+            e.preventDefault();
+            
+            const authToken = localStorage.getItem('authToken');
+            const userId = document.getElementById('editUserId').value;
+            const name = document.getElementById('editName').value;
+            const username = document.getElementById('editUsername').value;
+            const password = document.getElementById('editPassword').value;
+            const role = document.getElementById('editRole').value;
+            const active = document.getElementById('editActive').value === 'true';
+            
+            // Show loading indicator
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            const originalText = submitButton.textContent;
+            submitButton.textContent = 'Updating...';
+            submitButton.disabled = true;
+            
+            // Prepare update data
+            const updateData = {
+                name,
+                username,
+                role,
+                active
+            };
+            
+            // Only include password if provided
+            if (password.trim() !== '') {
+                updateData.password = password;
+            }
+            
+            console.log(`Updating user ${userId} with data:`, { ...updateData, password: password ? '[REDACTED]' : undefined });
+            
+            // First try the full update
+            fetch(`${CONFIG.baseUrl}/api/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': authToken
+                },
+                body: JSON.stringify(updateData)
+            })
+            .then(response => {
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json().then(data => {
+                        if (!response.ok) {
+                            // If we get a proper JSON error, use it
+                            throw new Error(data.msg || 'Error updating user');
+                        }
+                        return { success: true, data, fullUpdate: true };
+                    });
+                } else {
+                    return response.text().then(text => {
+                        if (!response.ok) {
+                            console.error(`Update response error text: ${text}`);
+                            // If full update fails, try just updating status
+                            return updateUserStatus(userId, active).then(statusResult => {
+                                return { ...statusResult, fullUpdate: false };
+                            });
+                        }
+                        return { success: true, message: text, fullUpdate: true };
+                    });
+                }
+            })
+            .then(result => {
+                // Close modal
+                closeModal('editUserModal');
+                
+                // Reload users
+                loadUsers();
+                
+                // Show appropriate message
+                if (result.fullUpdate) {
+                    alert('User information updated successfully');
+                } else {
+                    alert('Only user status was updated. Other details could not be updated.');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating user:', error);
+                alert(`Error updating user: ${error.message}`);
+            })
+            .finally(() => {
+                // Reset button
+                submitButton.textContent = originalText;
+                submitButton.disabled = false;
+            });
+        }
+        // Update the handleAddUser function
+        function handleAddUser(e) {
+            e.preventDefault();
+            
+            const authToken = localStorage.getItem('authToken');
+            const name = document.getElementById('name').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+            
+            if (!name || !username || !password || !role) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            // Show loading message
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            const originalText = submitButton.textContent;
+            submitButton.textContent = 'Adding...';
+            submitButton.disabled = true;
+            
+            fetch(`${CONFIG.baseUrl}/api/users`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': authToken
+                },
+                body: JSON.stringify({
+                    name,
+                    username,
+                    password,
+                    role
+                })
+            })
+            .then(response => {
+                // Parse either JSON or text, depending on response
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json().then(data => {
+                        if (!response.ok) {
+                            throw new Error(data.msg || 'Error creating user');
+                        }
+                        return data;
+                    });
+                } else {
+                    return response.text().then(text => {
+                        if (!response.ok) {
+                            console.error(`User creation error text: ${text}`);
+                            throw new Error(`Server error (${response.status})`);
+                        }
+                        return { message: text };
+                    });
+                }
+            })
+            .then(result => {
+                // Reset form
+                document.getElementById('addUserForm').reset();
+                
+                // Close modal
+                closeModal('addUserModal');
+                
+                // Reload users
+                loadUsers();
+                
+                alert('User added successfully');
+            })
+            .catch(error => {
+                console.error('Error creating user:', error);
+                alert(`Error creating user: ${error.message}`);
+            })
+            .finally(() => {
+                // Reset button
+                submitButton.textContent = originalText;
+                submitButton.disabled = false;
+            });
+        }
+        // Helper function to update just user status
+        function updateUserStatus(userId, active) {
+            const authToken = localStorage.getItem('authToken');
+            
+            return fetch(`${CONFIG.baseUrl}/api/users/${userId}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': authToken
+                },
+                body: JSON.stringify({ active })
+            })
+            .then(response => {
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json().then(data => {
+                        if (!response.ok) {
+                            throw new Error(data.msg || 'Failed to update user status');
+                        }
+                        return { success: true, data };
+                    });
+                } else {
+                    return response.text().then(text => {
+                        if (!response.ok) {
+                            console.error(`Status update response error text: ${text}`);
+                            throw new Error(`Server error (${response.status})`);
+                        }
+                        return { success: true, message: text };
+                    });
+                }
+            });
+        }
+        
+        // Close modal
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userRole');
+            window.location.href = '/work';
+        }
+    </script>
+</body>
+</html>
