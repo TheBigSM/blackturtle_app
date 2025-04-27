@@ -336,6 +336,11 @@
             align-items: center;
         }
 
+        .tab-content.active {
+            display: block !important; /* Force display with !important */
+        }
+
+
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -388,62 +393,18 @@
     
     <div class="container">
         <div class="tabs">
-            <div class="tab active" data-tab="dashboard">Dashboard</div>
-            <div class="tab" data-tab="orders">Orders</div>
+            <div class="tab active" data-tab="orders">Orders</div>
             <div class="tab" data-tab="users">User Management</div>
-        </div>
-        
-        <!-- Dashboard Tab -->
-        <div id="dashboard" class="tab-content active">
-            <h2>Admin Dashboard</h2>
-            
-            <div class="dashboard-stats">
-                <div class="stat-card">
-                    <div class="stat-label">Total Orders</div>
-                    <div class="stat-value" id="totalOrdersValue">-</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Pending Orders</div>
-                    <div class="stat-value" id="pendingOrdersValue">-</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Completed Orders</div>
-                    <div class="stat-value" id="completedOrdersValue">-</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Cancelled Orders</div>
-                    <div class="stat-value" id="cancelledOrdersValue">-</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Active Waiters</div>
-                    <div class="stat-value" id="activeWaitersValue">-</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Average Completion Time</div>
-                    <div class="stat-value" id="avgCompletionTimeValue">-</div>
-                </div>
-            </div>
-            
-            <div class="date-filters">
-                <div class="date-filter-group">
-                    <label for="startDate">From:</label>
-                    <input type="date" id="startDate">
-                </div>
-                <div class="date-filter-group">
-                    <label for="endDate">To:</label>
-                    <input type="date" id="endDate">
-                </div>
-                <button class="btn" onclick="loadDashboardStats()">Apply Filters</button>
-            </div>
-            
-            <div class="chart-container">
-                <canvas id="ordersChart"></canvas>
-            </div>
         </div>
         
         <!-- Orders Tab -->
         <div id="orders" class="tab-content">
             <h2>Order History</h2>
+
+            <div class="action-buttons" style="margin-bottom: 15px; display: flex; gap: 10px;">
+                <button class="btn btn-danger" onclick="showClearOrdersModal()">Clear Old Completed Orders</button>
+                <button class="btn btn-danger" onclick="forceDeleteCompletedOrders()">Delete ALL Completed Orders</button>
+            </div>
             
             <div class="search-bar">
                 <input type="text" id="orderSearchInput" placeholder="Search by table, waiter, or order number...">
@@ -626,6 +587,38 @@
             </div>
         </div>
     </div>
+
+    <!-- Update the modal text -->
+    <div id="clearOrdersModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Clear Orders</div>
+                <span class="close-btn" onclick="closeModal('clearOrdersModal')">&times;</span>
+            </div>
+            
+            <div>
+                <p>This will permanently delete completed orders based on creation date. This action cannot be undone.</p>
+                
+                <div class="form-row">
+                    <label for="clearPeriod">Delete completed orders:</label>
+                    <select id="clearPeriod" class="form-control">
+                        <option value="1">Older than 1 day</option>
+                        <option value="7">Older than 1 week</option>
+                        <option value="30" selected>Older than 30 days</option>
+                        <option value="90">Older than 3 months</option>
+                        <option value="180">Older than 6 months</option>
+                        <option value="365">Older than 1 year</option>
+                        <option value="all">ALL completed orders</option>
+                    </select>
+                </div>
+                
+                <div style="margin-top: 20px; display: flex; justify-content: space-between;">
+                    <button class="btn" onclick="closeModal('clearOrdersModal')">Cancel</button>
+                    <button class="btn btn-danger" onclick="clearOrders()">Delete Orders</button>
+                </div>
+            </div>
+        </div>
+    </div>
     
     <script src="/config.js"></script>
     <script src="/chart.min.js"></script>
@@ -638,12 +631,38 @@
         let allUsers = [];
         let ordersChart;
         
-        // Initialize on page load
+        // Fix the initialization sequence
         document.addEventListener('DOMContentLoaded', function() {
-            // Check authentication
-            checkAdminAuth();
-            
-            // Setup tab navigation
+            // Check authentication first
+            checkAdminAuth()
+                .then(() => {
+                    console.log('Authentication verified, initializing admin interface');
+                    
+                    // Setup tab navigation
+                    setupTabs();
+                    
+                    // Load initial data - orders first since it's the default tab
+                    loadOrders();
+                    
+                    // Setup form submissions
+                    document.getElementById('addUserForm').addEventListener('submit', handleAddUser);
+                    document.getElementById('editUserForm').addEventListener('submit', handleEditUser);
+                    
+                    // Make sure orders tab is active and visible
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelector('.tab[data-tab="orders"]').classList.add('active');
+                    
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    document.getElementById('orders').classList.add('active');
+                })
+                .catch(error => {
+                    console.error('Authentication failed:', error);
+                    // Redirect handled in checkAdminAuth
+                });
+        });
+
+        // Extract the tab setup to a separate function
+        function setupTabs() {
             document.querySelectorAll('.tab').forEach(tab => {
                 tab.addEventListener('click', function() {
                     // Update active tab
@@ -659,168 +678,47 @@
                         loadOrders();
                     } else if (this.dataset.tab === 'users') {
                         loadUsers();
-                    } else if (this.dataset.tab === 'dashboard') {
-                        loadDashboardStats();
-                        initializeOrdersChart();
                     }
                 });
             });
-            
-            // Load dashboard stats initially
-            loadDashboardStats();
-            initializeOrdersChart();
-            
-            // Setup form submissions
-            document.getElementById('addUserForm').addEventListener('submit', handleAddUser);
-            document.getElementById('editUserForm').addEventListener('submit', handleEditUser);
-            
-            // Set today's date as default for date filters
-            const today = new Date();
-            document.getElementById('endDate').valueAsDate = today;
-            
-            // Set 30 days ago as default start date
-            const startDate = new Date();
-            startDate.setDate(today.getDate() - 30);
-            document.getElementById('startDate').valueAsDate = startDate;
-        });
-        
-        // Authentication check
-        // Authentication check - simplified version
+        }
+
+        // Return a promise from checkAdminAuth for better control flow
         function checkAdminAuth() {
-            const authToken = localStorage.getItem('authToken');
-            const userRole = localStorage.getItem('userRole');
-            
-            if (!authToken || userRole !== 'admin') {
-                console.log('No admin token found, redirecting to login');
-                window.location.href = '/work/login?role=admin';
-                return;
-            }
-            
-            // Simple verification - try to access an admin-only endpoint
-            fetch(`${CONFIG.baseUrl}/api/users`, {
-                headers: {
-                    'x-auth-token': authToken
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Admin verification failed');
-                }
-                console.log('Admin authentication verified successfully');
-                // Continue with admin interface setup
-            })
-            .catch(error => {
-                console.error('Admin auth verification error:', error);
-                localStorage.removeItem('authToken');
-                localStorage.removeItem('userRole');
-                window.location.href = '/work/login?role=admin';
-            });
-        }
-        // Load dashboard statistics
-        function loadDashboardStats() {
-            const authToken = localStorage.getItem('authToken');
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            
-            let url = `${CONFIG.baseUrl}/api/orders/stats/summary`;
-            
-            // Add date filters if provided
-            if (startDate || endDate) {
-                url += '?';
-                if (startDate) url += `startDate=${startDate}`;
-                if (startDate && endDate) url += '&';
-                if (endDate) url += `endDate=${endDate}`;
-            }
-            
-            fetch(url, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-auth-token': authToken
-                }
-            })
-            .then(response => response.json())
-            .then(stats => {
-                // Update dashboard stats
-                document.getElementById('totalOrdersValue').textContent = stats.totalOrders;
-                document.getElementById('pendingOrdersValue').textContent = stats.pendingOrders;
-                document.getElementById('completedOrdersValue').textContent = stats.completedOrders;
-                document.getElementById('cancelledOrdersValue').textContent = stats.cancelledOrders;
-                document.getElementById('avgCompletionTimeValue').textContent = `${stats.avgCompletionTime} min`;
+            return new Promise((resolve, reject) => {
+                const authToken = localStorage.getItem('authToken');
+                const userRole = localStorage.getItem('userRole');
                 
-                // Also update the chart
-                updateOrdersChart(stats);
-            })
-            .catch(error => {
-                console.error('Error loading dashboard stats:', error);
-            });
-            
-            // Load active waiters count
-            fetch(`${CONFIG.baseUrl}/api/users/stats`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-auth-token': authToken
+                if (!authToken || userRole !== 'admin') {
+                    console.log('No admin token found, redirecting to login');
+                    window.location.href = '/work/login?role=admin';
+                    reject(new Error('Not authenticated'));
+                    return;
                 }
-            })
-            .then(response => response.json())
-            .then(stats => {
-                document.getElementById('activeWaitersValue').textContent = stats.activeWaiters;
-            })
-            .catch(error => {
-                console.error('Error loading user stats:', error);
+                
+                // Simple verification - try to access an admin-only endpoint
+                fetch(`${CONFIG.baseUrl}/api/users`, {
+                    headers: {
+                        'x-auth-token': authToken
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Admin verification failed');
+                    }
+                    console.log('Admin authentication verified successfully');
+                    resolve();
+                })
+                .catch(error => {
+                    console.error('Admin auth verification error:', error);
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('userRole');
+                    window.location.href = '/work/login?role=admin';
+                    reject(error);
+                });
             });
         }
         
-        // Initialize orders chart with better error handling
-        function initializeOrdersChart() {
-            try {
-                const ctx = document.getElementById('ordersChart').getContext('2d');
-                ordersChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['Total', 'Pending', 'Completed', 'Cancelled'],
-                        datasets: [{
-                            label: 'Orders',
-                            data: [0, 0, 0, 0],
-                            backgroundColor: [
-                                'rgba(54, 162, 235, 0.6)',
-                                'rgba(255, 159, 64, 0.6)',
-                                'rgba(75, 192, 192, 0.6)',
-                                'rgba(255, 99, 132, 0.6)'
-                            ],
-                            borderColor: [
-                                'rgba(54, 162, 235, 1)',
-                                'rgba(255, 159, 64, 1)',
-                                'rgba(75, 192, 192, 1)',
-                                'rgba(255, 99, 132, 1)'
-                            ],
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                position: 'top',
-                            },
-                            title: {
-                                display: true,
-                                text: 'Order Statistics'
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
-                    }
-                });
-                console.log('Chart initialized successfully');
-            } catch (error) {
-                console.error('Error creating chart:', error);
-                document.querySelector('.chart-container').innerHTML = 
-                    '<div style="padding: 20px; text-align: center;">Error creating chart: ' + error.message + '</div>';
-            }
-        }
         // Separated chart creation function
         function createChart() {
             const ctx = document.getElementById('ordersChart').getContext('2d');
@@ -892,9 +790,13 @@
             }
         }
         
-        // Load orders
+        // Improved loadOrders function
         function loadOrders() {
             const authToken = localStorage.getItem('authToken');
+            const tableBody = document.getElementById('ordersTableBody');
+            
+            // Show loading indicator
+            tableBody.innerHTML = '<tr><td colspan="8" class="text-center">Loading orders...</td></tr>';
             
             fetch(`${CONFIG.baseUrl}/api/orders?limit=1000`, {
                 headers: {
@@ -902,8 +804,15 @@
                     'x-auth-token': authToken
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error loading orders: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            })
             .then(orders => {
+                console.log(`Loaded ${orders.length} orders successfully`);
+                // Always reset both arrays with fresh data
                 allOrders = orders;
                 filteredOrders = [...orders];
                 
@@ -915,6 +824,7 @@
             })
             .catch(error => {
                 console.error('Error loading orders:', error);
+                tableBody.innerHTML = `<tr><td colspan="8" class="text-center text-danger">Error loading orders: ${error.message}</td></tr>`;
             });
         }
         
@@ -971,17 +881,20 @@
             tableBody.innerHTML = '';
             
             // Create user ID to name mapping
-            const userNames = {};
+            const authToken = localStorage.getItem('authToken');
+            
+            // First fetch users to create a mapping
             fetch(`${CONFIG.baseUrl}/api/users`, {
                 headers: {
-                    'Content-Type': 'application/json',
-                    'x-auth-token': localStorage.getItem('authToken')
+                    'x-auth-token': authToken
                 }
             })
             .then(response => response.json())
             .then(users => {
+                // Create map of user IDs to names
+                const userMap = {};
                 users.forEach(user => {
-                    userNames[user._id] = user.name;
+                    userMap[user._id] = user.name || user.username;
                 });
                 
                 // Populate table with orders
@@ -1000,8 +913,16 @@
                     const orderDate = new Date(order.createdAt);
                     const formattedDate = `${orderDate.toLocaleDateString()} ${orderDate.toLocaleTimeString()}`;
                     
-                    // Get waiter name
-                    const waiterName = userNames[order.createdBy] || 'Unknown';
+                    // Get waiter name - improved to handle both object and string createdBy
+                    let waiterName = 'Unknown';
+                    if (order.createdBy) {
+                        const userId = typeof order.createdBy === 'object' ? 
+                            (order.createdBy._id || order.createdBy) : 
+                            order.createdBy;
+                        
+                        waiterName = userMap[userId] || 'Unknown';
+                        console.log(`Order ${order.number} creator: ${waiterName} (${userId})`);
+                    }
                     
                     row.innerHTML = `
                         <td>${order.number}</td>
@@ -1024,6 +945,7 @@
             })
             .catch(error => {
                 console.error('Error loading user names:', error);
+                tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Error loading orders</td></tr>';
             });
         }
         
@@ -1164,36 +1086,55 @@
         }
         
         // View order details
+        // View order details - improved version
         function viewOrderDetails(orderId) {
             const authToken = localStorage.getItem('authToken');
             
-            fetch(`${CONFIG.baseUrl}/api/orders/${orderId}`, {
+            // First fetch all users to create a mapping
+            fetch(`${CONFIG.baseUrl}/api/users`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'x-auth-token': authToken
                 }
             })
             .then(response => response.json())
-            .then(order => {
-                // Get user info for waiter name
-                fetch(`${CONFIG.baseUrl}/api/users/${order.createdBy}`, {
+            .then(users => {
+                // Create a mapping of user IDs to names
+                const userMap = {};
+                users.forEach(user => {
+                    userMap[user._id] = user.name || user.username;
+                });
+                
+                // Now fetch the order
+                return fetch(`${CONFIG.baseUrl}/api/orders/${orderId}`, {
                     headers: {
                         'Content-Type': 'application/json',
                         'x-auth-token': authToken
                     }
                 })
                 .then(response => response.json())
-                .then(user => {
-                    const waiterName = user ? user.name : 'Unknown';
+                .then(order => {
+                    // Get waiter name from our user map instead of making another API call
+                    let waiterName = 'Unknown';
+                    
+                    if (order.createdBy) {
+                        // Ensure we're getting a string ID regardless if createdBy is an object or string
+                        const userId = typeof order.createdBy === 'object' ? 
+                            (order.createdBy._id || order.createdBy) : 
+                            order.createdBy;
+                        
+                        waiterName = userMap[userId] || 'Unknown';
+                        console.log(`Found creator for order ${order.number}: ${waiterName} (${userId})`);
+                    } else {
+                        console.log(`No creator found for order ${order.number}`);
+                    }
+                    
                     displayOrderDetails(order, waiterName);
-                })
-                .catch(error => {
-                    console.error('Error loading waiter details:', error);
-                    displayOrderDetails(order, 'Unknown');
                 });
             })
             .catch(error => {
                 console.error('Error loading order details:', error);
+                alert(`Error loading order details: ${error.message}`);
             });
         }
         
@@ -1247,7 +1188,134 @@
             // Show modal
             modal.style.display = 'block';
         }
-        
+
+        // Show clear orders modal
+        function showClearOrdersModal() {
+            document.getElementById('clearOrdersModal').style.display = 'block';
+        }
+
+        // Clear orders based on the selected period - COMPLETELY FIXED VERSION
+        function clearOrders() {
+            const authToken = localStorage.getItem('authToken');
+            const period = document.getElementById('clearPeriod').value;
+            
+            if (!confirm('Are you sure you want to permanently delete these orders? This action cannot be undone.')) {
+                return;
+            }
+            
+            // Show processing message
+            const modalContent = document.querySelector('#clearOrdersModal .modal-content');
+            const originalContent = modalContent.innerHTML;
+            
+            modalContent.innerHTML = `
+                <div style="text-align: center; padding: 30px;">
+                    <p>Deleting orders...</p>
+                    <button class="btn" onclick="closeModal('clearOrdersModal')" style="margin-top: 15px;">Cancel</button>
+                </div>
+            `;
+            
+            // Make the API request
+            fetch(`${CONFIG.baseUrl}/api/orders/clear/${period}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': authToken
+                }
+            })
+            .then(response => {
+                // Handle non-OK responses
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error('Order clearing endpoint not found. Please check server implementation.');
+                    }
+                    
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        return response.json().then(data => {
+                            throw new Error(data.msg || 'Failed to clear orders');
+                        });
+                    } else {
+                        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                    }
+                }
+                
+                // Parse the successful response
+                return response.json();
+            })
+            .then(result => {
+                console.log('Clear orders response:', result);
+                
+                // Always close the modal first
+                closeModal('clearOrdersModal');
+                
+                // Then fetch fresh data instead of trying to update locally
+                loadOrders();
+            })
+            .catch(error => {
+                console.error('Error clearing orders:', error);
+                
+                // Close the modal
+                closeModal('clearOrdersModal');
+                
+                // Show error
+                alert(`Error clearing orders: ${error.message}`);
+            });
+        }
+
+        function forceDeleteCompletedOrders() {
+            if (!confirm('WARNING: This will delete ALL completed orders regardless of age. Are you sure?')) {
+                return;
+            }
+            
+            const authToken = localStorage.getItem('authToken');
+            
+            // Show processing message
+            const processingDiv = document.createElement('div');
+            processingDiv.className = 'processing-overlay';
+            processingDiv.innerHTML = `
+                <div class="processing-content">
+                    <p>Deleting all completed orders...</p>
+                    <button class="btn" onclick="document.body.removeChild(this.parentNode.parentNode)">Cancel</button>
+                </div>
+            `;
+            processingDiv.style.position = 'fixed';
+            processingDiv.style.top = '0';
+            processingDiv.style.left = '0';
+            processingDiv.style.width = '100%';
+            processingDiv.style.height = '100%';
+            processingDiv.style.backgroundColor = 'rgba(0,0,0,0.5)';
+            processingDiv.style.display = 'flex';
+            processingDiv.style.justifyContent = 'center';
+            processingDiv.style.alignItems = 'center';
+            processingDiv.style.zIndex = '1000';
+            
+            document.body.appendChild(processingDiv);
+            
+            // Use the 'all' parameter to delete all completed orders
+            fetch(`${CONFIG.baseUrl}/api/orders/clear/all`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-auth-token': authToken
+                }
+            })
+            .then(response => response.json())
+            .then(result => {
+                // Remove the processing overlay
+                document.body.removeChild(processingDiv);
+                
+                // Show result and reload
+                alert(`${result.message}`);
+                loadOrders();
+            })
+            .catch(error => {
+                // Remove the processing overlay
+                document.body.removeChild(processingDiv);
+                
+                alert(`Error: ${error.message}`);
+            });
+        }
+
         // Update the loadUsers function to add delete button for all users
         function loadUsers() {
             const authToken = localStorage.getItem('authToken');

@@ -37,6 +37,7 @@ const OrderSchema = new mongoose.Schema({
     items: [OrderItemSchema],
     status: {
         type: String,
+        required: true,
         enum: ['pending', 'in-progress', 'completed', 'cancelled'],
         default: 'pending'
     },
@@ -54,9 +55,10 @@ const OrderSchema = new mongoose.Schema({
         default: Date.now
     },
     completedAt: {
-        type: Date
+        type: Date,
+        default: null
     }
-});
+}, { timestamps: true });
 
 // Auto-increment order number
 OrderSchema.pre('validate', async function(next) {

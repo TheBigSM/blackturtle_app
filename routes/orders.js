@@ -125,6 +125,68 @@ router.get('/', auth, async (req, res) => {
     }
 });
 
+// @route   DELETE /api/orders/clear/:period
+// @desc    Clear completed orders older than or all completed orders
+// @access  Private (admin only)
+router.delete('/clear/:period', auth, adminOnly, async (req, res) => {
+    try {
+        const { period } = req.params;
+        
+        // Build the base query - always target completed orders
+        const query = { status: 'completed' };
+        
+        // Only add date filtering if not 'all'
+        if (period !== 'all') {
+            const daysAgo = parseInt(period);
+            if (isNaN(daysAgo)) {
+                return res.status(400).json({ msg: 'Invalid period provided' });
+            }
+            
+            const dateThreshold = new Date();
+            dateThreshold.setDate(dateThreshold.getDate() - daysAgo);
+            
+            // For orders created before the threshold date
+            query.createdAt = { $lt: dateThreshold };
+            
+            console.log(`Admin ${req.user.id} is clearing completed orders older than ${daysAgo} days`);
+            console.log('Date threshold:', dateThreshold);
+        } else {
+            console.log(`Admin ${req.user.id} is clearing ALL completed orders`);
+        }
+        
+        // Count all completed orders for reference
+        const totalCompleted = await Order.countDocuments({ status: 'completed' });
+        console.log(`Total completed orders in system: ${totalCompleted}`);
+        
+        // Count matching orders
+        const matchCount = await Order.countDocuments(query);
+        console.log(`Found ${matchCount} orders matching the deletion query`);
+        
+        // Only proceed with deletion if we have matches
+        if (matchCount === 0) {
+            return res.json({ 
+                success: true, 
+                count: 0,
+                message: 'No orders found matching the criteria'
+            });
+        }
+        
+        // Delete the orders
+        const result = await Order.deleteMany(query);
+        
+        console.log(`Deleted ${result.deletedCount} completed orders`);
+        
+        res.json({ 
+            success: true, 
+            count: result.deletedCount,
+            message: `Successfully deleted ${result.deletedCount} completed orders`
+        });
+    } catch (err) {
+        console.error('Error clearing orders:', err);
+        res.status(500).json({ msg: 'Server error', error: err.message });
+    }
+});
+
 // @route   GET /api/orders/:id
 // @desc    Get order by ID
 // @access  Private
@@ -211,12 +273,18 @@ router.put('/:id/status', auth, async (req, res) => {
         order.status = status;
         order.updatedAt = Date.now();
         
-        // If status is completed, set completedAt
+        // IMPORTANT: If status is completed, set completedAt
         if (status === 'completed') {
             order.completedAt = Date.now();
+            console.log(`Order ${order._id} marked as completed at ${order.completedAt}`);
         }
         
         await order.save();
+        
+        // For debugging
+        if (status === 'completed') {
+            console.log(`After save, order has completedAt: ${order.completedAt}`);
+        }
         
         res.json(order);
     } catch (err) {
