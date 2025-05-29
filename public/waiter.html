@@ -69,6 +69,72 @@
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 15px;
         }
+
+        .menu-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .menu-btn {
+            background-color: transparent;
+            border: 1px solid white;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            min-width: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .menu-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: white;
+            min-width: 180px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            border-radius: 4px;
+            z-index: 1001;
+            border: 1px solid #ddd;
+            margin-top: 5px;
+        }
+
+        .dropdown-content a {
+            color: #333;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+
+        .dropdown-content a:last-child {
+            border-bottom: none;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #f1f1f1;
+        }
+
+        .dropdown-content a:first-child {
+            border-radius: 4px 4px 0 0;
+        }
+
+        .dropdown-content a:last-child {
+            border-radius: 0 0 4px 4px;
+        }
+
+        .dropdown-content.show {
+            display: block;
+        }
         
         .menu-item {
             border: 1px solid #ddd;
@@ -581,7 +647,12 @@
             </div>
         </div>
         <div class="user-info">
-            <button class="logout-btn" onclick="logout()">Logout</button>
+            <div class="menu-dropdown">
+                <button class="menu-btn" id="menuBtn" onclick="toggleMenu()">⋯</button>
+                <div class="dropdown-content" id="dropdownContent">
+                    <a href="#" onclick="logout()">Logout</a>
+                </div>
+            </div>
         </div>
     </header>
     <div id="messageBar" class="message-bar"></div>
@@ -632,6 +703,13 @@
             
             <button class="send-btn" id="sendOrderBtn" disabled>Pošalji porudžbinu</button>
         </div>
+
+        <div class="todays-orders-section" style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #ddd;">
+            <div class="todays-orders-title" style="font-size: 18px; font-weight: bold; margin-bottom: 15px; color: #333;">Današnje porudžbine</div>
+            <div id="todaysOrdersList" class="todays-orders-list" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 5px; background-color: white; padding: 10px;">
+                <div style="text-align: center; padding: 20px; color: #666;">Učitavanje...</div>
+            </div>
+        </div>
     </div>
     
     <script src="/config.js"></script>
@@ -648,6 +726,40 @@
 
         const tableMappings = {
             'basta-reka': [
+                {value: '41', label: 'Table 41'},
+                {value: '42', label: 'Table 42'},
+                {value: '43', label: 'Table 43'},
+                {value: '44', label: 'Table 44'},
+                {value: '45', label: 'Table 45'},
+                {value: '46', label: 'Table 46'},
+                {value: '51', label: 'Table 51'},
+                {value: '52', label: 'Table 52'},
+                {value: '53', label: 'Table 53'},
+                {value: '54', label: 'Table 54'},
+                {value: '55', label: 'Table 55'},
+                {value: '56', label: 'Table 56'}
+            ],
+            'basta-zid': [
+                {value: '61', label: 'Table 61'},
+                {value: '62', label: 'Table 62'},
+                {value: '63', label: 'Table 63'},
+                {value: '64', label: 'Table 64'},
+                {value: '65', label: 'Table 65'},
+                {value: '66', label: 'Table 66'},
+                {value: '67', label: 'Table 67'},
+                {value: '68', label: 'Table 68'},
+                {value: '69', label: 'Table 69'},
+                {value: '70', label: 'Table 70'},
+                {value: '71', label: 'Table 71'},
+                {value: '72', label: 'Table 72'},
+                {value: '73', label: 'Table 73'},
+                {value: '74', label: 'Table 74'},
+                {value: '75', label: 'Table 75'},
+                {value: '76', label: 'Table 76'},
+                {value: '77', label: 'Table 77'},
+                {value: '78', label: 'Table 78'}
+            ],
+            'unutra': [
                 {value: '1', label: 'Table 1'},
                 {value: '2', label: 'Table 2'},
                 {value: '3', label: 'Table 3'},
@@ -655,62 +767,66 @@
                 {value: '5', label: 'Table 5'},
                 {value: '6', label: 'Table 6'},
                 {value: '7', label: 'Table 7'},
-                {value: '8', label: 'Table 8'}
-            ],
-            'basta-zid': [
+                {value: '8', label: 'Table 8'},
                 {value: '9', label: 'Table 9'},
                 {value: '10', label: 'Table 10'},
                 {value: '11', label: 'Table 11'},
-                {value: '12', label: 'Table 12'}
-            ],
-            'sank': [
+                {value: '12', label: 'Table 12'},
                 {value: '13', label: 'Table 13'},
                 {value: '14', label: 'Table 14'},
                 {value: '15', label: 'Table 15'},
-                {value: '16', label: 'Table 16'}
-            ],
-            'ulaz': [
+                {value: '16', label: 'Table 16'},
                 {value: '17', label: 'Table 17'},
                 {value: '18', label: 'Table 18'},
                 {value: '19', label: 'Table 19'},
                 {value: '20', label: 'Table 20'},
                 {value: '21', label: 'Table 21'},
-                {value: '22', label: 'Table 22'}
-            ],
-            'separei': [
+                {value: '22', label: 'Table 22'},
                 {value: '23', label: 'Table 23'},
                 {value: '24', label: 'Table 24'},
                 {value: '25', label: 'Table 25'},
                 {value: '26', label: 'Table 26'},
                 {value: '27', label: 'Table 27'},
-                {value: '28', label: 'Table 28'}
+                {value: '28', label: 'Table 28'},
+                {value: '29', label: 'Table 29'},
+                {value: '30', label: 'Table 30'},
+                {value: '31', label: 'Table 31'},
+                {value: '32', label: 'Table 32'},
+                {value: '33', label: 'Table 33'},
+                {value: '34', label: 'Table 34'},
+                {value: '35', label: 'Table 35'},
+                {value: '36', label: 'Table 36'},
+                {value: '37', label: 'Table 37'},
+                {value: '38', label: 'Table 38'},
+                {value: '39', label: 'Table 39'},
+                {value: '40', label: 'Table 40'}
             ]
         };
 
         // Menu data
         const menuData = {
             toceno: [
-                    { id: 't1', name: 'Svetlo 0.5', price: 340.00, color: '#009900' },  // More Irish green for light beer
-                    { id: 't2', name: 'Tamno 0.5', price: 340.00, color: '#5D2906' },   // Darker brown for dark beer
-                    { id: 't3', name: 'Svetlo 0.3', price: 280.00, color: '#009900' },
-                    { id: 't4', name: 'Tamno 0.3', price: 280.00, color: '#5D2906' },
+                    { id: 't1', name: 'Svetlo 0.3', price: 280.00, color: '#009900' },  // More Irish green for light beer
+                    { id: 't2', name: 'Tamno 0.3', price: 280.00, color: '#5D2906' },   // Darker brown for dark beer
+                    { id: 't3', name: 'Svetlo 0.5', price: 340.00, color: '#009900' },
+                    { id: 't4', name: 'Tamno 0.5', price: 340.00, color: '#5D2906' },
                     { id: 't5', name: 'Svetlo 1l', price: 640.00, color: '#009900' },
                     { id: 't6', name: 'Tamno 1l', price: 640.00, color: '#5D2906' },
-                    { id: 't7', name: 'Borovnica 0.5', price: 340.00, color: '#8A2BE2' },  // Lighter purple for blueberry
-                    { id: 't8', name: 'Jagoda 0.5', price: 340.00, color: '#FF3355' },     // More reddish for strawberry
-                    { id: 't9', name: 'Borovnica 0.3', price: 280.00, color: '#8A2BE2' },
-                    { id: 't10', name: 'Jagoda 0.3', price: 280.00, color: '#FF3355' },
+                    { id: 't7', name: 'Borovnica 0.3', price: 280.00, color: '#8A2BE2' },  // Lighter purple for blueberry
+                    { id: 't8', name: 'Jagoda 0.3', price: 280.00, color: '#FF3355' },     // More reddish for strawberry
+                    { id: 't9', name: 'Borovnica 0.5', price: 340.00, color: '#8A2BE2' },
+                    { id: 't10', name: 'Jagoda 0.5', price: 340.00, color: '#FF3355' },
                     { id: 't11', name: 'Borovnica 1l', price: 640.00, color: '#8A2BE2' },
                     { id: 't12', name: 'Jagoda 1l', price: 640.00, color: '#FF3355' },
-                    { id: 't13', name: 'Sezonsko 0.5', price: 340.00, color: '#FF8C00' },  // More vibrant orange for seasonal
-                    { id: 't14', name: 'Kronenberg 0.5', price: 340.00, color: '#4682B4' }, // Lighter sea blue for Kronenberg
-                    { id: 't15', name: 'Sezonsko 0.3', price: 280.00, color: '#FF8C00' },
-                    { id: 't16', name: 'Kronenberg 0.3', price: 280.00, color: '#4682B4' },
+                    { id: 't13', name: 'Sezonsko 0.3', price: 280.00, color: '#FF8C00' },  // More vibrant orange for seasonal
+                    { id: 't14', name: 'Kronenberg 0.3', price: 300.00, color: '#4682B4' }, // Lighter sea blue for Kronenberg
+                    { id: 't15', name: 'Sezonsko 0.5', price: 340.00, color: '#FF8C00' },
+                    { id: 't16', name: 'Kronenberg 0.5', price: 500.00, color: '#4682B4' },
                     { id: 't17', name: 'Sezonsko 1l', price: 640.00, color: '#FF8C00' },
-                    { id: 't18', name: 'Kronenberg 1.0', price: 640.00, color: '#4682B4' },
-                    { id: 't19', name: 'Asahi 0.3', price: 280.00, color: '#FFFFFF' },    // White for Asahi (unchanged)
-                    { id: 't20', name: 'Asahi 0.5', price: 340.00, color: '#FFFFFF' },
-                    { id: 't21', name: 'Asahi 1.0', price: 640.00, color: '#FFFFFF' }
+                    { id: 't18', name: 'Kronenberg 1.0', price: 1000.00, color: '#4682B4' },
+                    { id: 't19', name: 'Asahi 0.3', price: 300.00, color: '#FFFFFF' },    // White for Asahi (unchanged)
+                    { id: 't20', name: 'Asahi 0.5', price: 500.00, color: '#FFFFFF' },
+                    { id: 't21', name: 'Asahi 1.0', price: 1000.00, color: '#FFFFFF' }
                 ],
             flasa: [
                 { id: 'f1', name: 'Lav Premium 0.33', price: 330.00 },
@@ -1368,7 +1484,6 @@
             debug(`Updated order stats: Sent=${sentOrdersCount}, Prepared=${preparedOrdersCount}`);
         }
         
-        // Load order stats from backend
         // Load order stats from backend or use localStorage with fallback
         async function loadOrderStats() {
             try {
@@ -1377,6 +1492,19 @@
                     debug('No auth token found, cannot load order stats');
                     return;
                 }
+                
+                // With this logic instead:
+                const now = new Date();
+                let businessDay;
+
+                // If it's before 3 AM, consider it part of the previous day
+                if (now.getHours() < 3) {
+                    businessDay = new Date(now.getTime() - 24 * 60 * 60 * 1000); // Subtract 1 day
+                } else {
+                    businessDay = now;
+                }
+
+                const today = businessDay.toISOString().split('T')[0];
                 
                 // Try to load actual orders to count statuses
                 try {
@@ -1391,17 +1519,22 @@
                     if (response.ok) {
                         const orders = await response.json();
                         
-                        // Count sent and prepared orders
+                        // Filter to only today's orders and count sent and prepared
                         let sent = 0;
                         let prepared = 0;
                         
                         orders.forEach(order => {
-                            // Consider any order as "sent"
-                            sent++;
+                            const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
                             
-                            // Only count completed orders as "prepared"
-                            if (order.status === 'completed') {
-                                prepared++;
+                            // Only count orders from today
+                            if (orderDate === today) {
+                                // Count all today's orders as "sent"
+                                sent++;
+                                
+                                // Only count completed orders as "prepared"
+                                if (order.status === 'completed') {
+                                    prepared++;
+                                }
                             }
                         });
                         
@@ -1409,13 +1542,7 @@
                         preparedOrdersCount = prepared;
                         
                         updateOrderStats();
-                        debug(`Calculated order stats from actual orders: Sent=${sent}, Prepared=${prepared}`);
-                        
-                        // Store these values in localStorage for fallback
-                        localStorage.setItem('orderStats', JSON.stringify({
-                            sent: sentOrdersCount,
-                            prepared: preparedOrdersCount
-                        }));
+                        debug(`Calculated TODAY'S order stats from actual orders: Sent=${sent}, Prepared=${prepared}`);
                         
                         return;
                     }
@@ -1423,34 +1550,7 @@
                     debug(`Error loading orders: ${err.message}`);
                 }
                 
-                // If we get here, either the /api/orders endpoint failed or we couldn't calculate
-                // Fall back to checking the stats endpoint
-                try {
-                    const response = await fetch(`${CONFIG.baseUrl}/api/orders/stats`, {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'x-auth-token': authToken
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        const stats = await response.json();
-                        
-                        sentOrdersCount = stats.sentCount || 0;
-                        preparedOrdersCount = stats.preparedCount || 0;
-                        
-                        updateOrderStats();
-                        
-                        debug(`Loaded order stats from backend: ${JSON.stringify(stats)}`);
-                        return;
-                    }
-                } catch (err) {
-                    debug(`Stats endpoint error: ${err.message}`);
-                }
-                
-                // Last resort: use localStorage
-                debug('Using localStorage for order stats tracking');
+                // Fall back to localStorage if needed
                 const storedStats = JSON.parse(localStorage.getItem('orderStats') || '{"sent":0,"prepared":0}');
                 sentOrdersCount = storedStats.sent || 0;
                 preparedOrdersCount = storedStats.prepared || 0;
@@ -1458,7 +1558,6 @@
                 
             } catch (error) {
                 debug(`Error in loadOrderStats: ${error.message}`);
-                // Fall back to localStorage
                 const storedStats = JSON.parse(localStorage.getItem('orderStats') || '{"sent":0,"prepared":0}');
                 sentOrdersCount = storedStats.sent || 0;
                 preparedOrdersCount = storedStats.prepared || 0;
@@ -1653,6 +1752,9 @@
             
             // Load order stats
             loadOrderStats();
+
+            // Load today's orders immediately
+            loadTodaysOrders();
             
             // Initialize socket for real-time updates
             initializeSocket();
@@ -1678,10 +1780,204 @@
             // Setup send button
             document.getElementById('sendOrderBtn').addEventListener('click', sendOrder);
             
-            // Refresh order stats periodically
-            setInterval(loadOrderStats, 3000); 
+            setInterval(() => {
+                loadOrderStats();
+                loadTodaysOrders();
+            }, 3000);
         });    
-    </script>
 
+
+        // Toggle dropdown menu
+        function toggleMenu() {
+            const dropdown = document.getElementById('dropdownContent');
+            dropdown.classList.toggle('show');
+        }
+
+        // Close dropdown when clicking outside
+        window.onclick = function(event) {
+            if (!event.target.matches('.menu-btn')) {
+                const dropdowns = document.getElementsByClassName("dropdown-content");
+                for (let i = 0; i < dropdowns.length; i++) {
+                    const openDropdown = dropdowns[i];
+                    if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                    }
+                }
+            }
+        }
+        // Update loadTodaysOrders to only fetch new orders
+        let lastOrderId = null; // Track the last order we've seen
+        let displayedOrders = new Set(); // Track which orders we've already displayed
+
+        function loadTodaysOrders() {
+            const authToken = localStorage.getItem('authToken');
+            const todaysOrdersList = document.getElementById('todaysOrdersList');
+            
+            if (!todaysOrdersList) return;
+            
+            // Only show loading on first load
+            if (displayedOrders.size === 0) {
+                todaysOrdersList.innerHTML = '<div style="text-align: center; padding: 20px;">Učitavanje porudžbina...</div>';
+            }
+            
+            const now = new Date();
+            let businessDay;
+
+            // If it's before 3 AM, consider it part of the previous day
+            if (now.getHours() < 3) {
+                businessDay = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            } else {
+                businessDay = now;
+            }
+
+            const today = businessDay.toISOString().split('T')[0];
+            
+            fetch(`${CONFIG.baseUrl}/api/orders`, {
+                method: 'GET',
+                headers: {
+                    'x-auth-token': authToken,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(orders => {
+                const waiterOrders = orders.filter(order => {
+                    const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+                    return orderDate === today;
+                });
+                
+                updateTodaysOrdersDisplay(waiterOrders);
+            })
+            .catch(error => {
+                console.error('Error loading today\'s orders:', error);
+                if (todaysOrdersList && displayedOrders.size === 0) {
+                    todaysOrdersList.innerHTML = '<div style="text-align: center; padding: 20px; color: red;">Greška pri učitavanju porudžbina</div>';
+                }
+            });
+        }
+
+        // New function to update orders without full reload
+        function updateTodaysOrdersDisplay(orders) {
+            const todaysOrdersList = document.getElementById('todaysOrdersList');
+            if (!todaysOrdersList) return;
+            
+            if (orders.length === 0) {
+                if (displayedOrders.size === 0) {
+                    todaysOrdersList.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Nema pronađenih porudžbina za danas</div>';
+                }
+                return;
+            }
+            
+            // Sort orders by creation time (newest first)
+            orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            
+            // If this is the first load, display all orders
+            if (displayedOrders.size === 0) {
+                displayedOrders.clear();
+                todaysOrdersList.innerHTML = '';
+                
+                orders.forEach(order => {
+                    addOrderToDisplay(order, todaysOrdersList);
+                    displayedOrders.add(order._id);
+                });
+                return;
+            }
+            
+            // Check for new orders and add them to the top
+            const newOrders = orders.filter(order => !displayedOrders.has(order._id));
+            
+            if (newOrders.length > 0) {
+                // Add new orders to the top of the list
+                newOrders.reverse().forEach(order => { // Reverse to maintain newest-first order
+                    addOrderToDisplay(order, todaysOrdersList, true); // true = prepend
+                    displayedOrders.add(order._id);
+                });
+                
+                debug(`Added ${newOrders.length} new orders to display`);
+            }
+            
+            // Update existing orders' status if changed
+            updateExistingOrdersStatus(orders);
+        }
+
+        // Function to add a single order to the display
+        function addOrderToDisplay(order, container, prepend = false) {
+            const total = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const orderTime = new Date(order.createdAt).toLocaleTimeString();
+            
+            const itemsHtml = order.items.map(item => {
+                const itemTotal = item.price * item.quantity;
+                return `
+                    <div style="display: flex; justify-content: space-between; padding: 2px 0; font-size: 12px;">
+                        <span>${item.quantity}x ${item.name}</span>
+                        <span>RSD${itemTotal.toFixed(2)}</span>
+                    </div>
+                `;
+            }).join('');
+            
+            const statusColors = {
+                pending: '#f39c12',
+                sent: '#ff9800', 
+                prepared: '#2196F3',
+                completed: '#4CAF50'
+            };
+            
+            const orderElement = document.createElement('div');
+            orderElement.setAttribute('data-order-id', order._id);
+            orderElement.style.cssText = 'border: 1px solid #eee; border-radius: 5px; margin-bottom: 10px; padding: 10px; background-color: #f9f9f9;';
+            
+            orderElement.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <div style="font-weight: bold; font-size: 14px;">
+                        Sto ${order.table} - #${order._id.slice(-6)}
+                    </div>
+                    <div class="order-status-badge" style="padding: 2px 8px; border-radius: 8px; font-size: 10px; color: white; background-color: ${statusColors[order.status] || '#ccc'};">
+                        ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 8px;">
+                    ${itemsHtml}
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                    <span style="color: #666;">${orderTime}</span>
+                    <span style="font-weight: bold;">RSD${total.toFixed(2)}</span>
+                </div>
+            `;
+            
+            if (prepend) {
+                container.insertBefore(orderElement, container.firstChild);
+            } else {
+                container.appendChild(orderElement);
+            }
+        }
+
+        // Function to update status of existing orders without full reload
+        function updateExistingOrdersStatus(orders) {
+            orders.forEach(order => {
+                const orderElement = document.querySelector(`[data-order-id="${order._id}"]`);
+                if (orderElement) {
+                    const statusBadge = orderElement.querySelector('.order-status-badge');
+                    if (statusBadge) {
+                        const statusColors = {
+                            pending: '#f39c12',
+                            sent: '#ff9800', 
+                            prepared: '#2196F3',
+                            completed: '#4CAF50'
+                        };
+                        
+                        statusBadge.style.backgroundColor = statusColors[order.status] || '#ccc';
+                        statusBadge.textContent = order.status.charAt(0).toUpperCase() + order.status.slice(1);
+                    }
+                }
+            });
+        }
+    </script>
 </body>
 </html>
