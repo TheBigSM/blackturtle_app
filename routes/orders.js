@@ -192,117 +192,8 @@ router.delete('/clear/:period', auth, adminOnly, async (req, res) => {
     }
 });
 
-// @route   GET /api/orders/:id
-// @desc    Get order by ID
-// @access  Private
-router.get('/:id', auth, async (req, res) => {
-    try {
-        const order = await Order.findByPk(req.params.id, {
-            include: [{ model: User, as: 'creator', attributes: ['name', 'username'] }]
-        });
-
-        if (!order) {
-            return res.status(404).json({ msg: 'Order not found' });
-        }
-
-        // Check if user has access to this order (for waiters)
-        if (req.user.role === 'waiter' && order.createdBy !== req.user.id) {
-            return res.status(403).json({ msg: 'Not authorized to view this order' });
-        }
-
-        res.json(Order.present(order));
-    } catch (err) {
-        console.error(err.message);
-
-        if (notFoundOnBadId(err, res)) return;
-
-        res.status(500).send('Server error');
-    }
-});
-
-// @route   PUT /api/orders/:id/status
-// @desc    Update order status
-// @access  Private
-router.put('/:id/status', auth, async (req, res) => {
-    try {
-        const { status } = req.body;
-
-        if (!status) {
-            return res.status(400).json({ msg: 'Please provide status' });
-        }
-
-        // Validate status based on role
-        if (req.user.role === 'bartender') {
-            if (!['in-progress', 'completed'].includes(status)) {
-                return res.status(403).json({
-                    msg: 'Bartenders can only set orders to in-progress or completed'
-                });
-            }
-        } else if (req.user.role === 'waiter') {
-            if (!['cancelled'].includes(status)) {
-                return res.status(403).json({
-                    msg: 'Waiters can only cancel orders'
-                });
-            }
-        } else if (req.user.role === 'admin') {
-            // Admin can set any status
-            if (!['pending', 'in-progress', 'completed', 'cancelled'].includes(status)) {
-                return res.status(400).json({
-                    msg: 'Invalid status value'
-                });
-            }
-        } else {
-            return res.status(403).json({
-                msg: 'Role not recognized'
-            });
-        }
-
-        // Find order
-        const order = await Order.findByPk(req.params.id);
-
-        if (!order) {
-            return res.status(404).json({ msg: 'Order not found' });
-        }
-
-        // Check if waiter is the creator of the order (only applies to waiters)
-        if (req.user.role === 'waiter' && order.createdBy !== req.user.id) {
-            return res.status(403).json({ msg: 'Not authorized to update this order' });
-        }
-
-        // Update order status
-        order.status = status;
-
-        // IMPORTANT: If status is completed, set completedAt
-        if (status === 'completed') {
-            order.completedAt = new Date();
-            console.log(`Order ${order.id} marked as completed at ${order.completedAt}`);
-        }
-
-        await order.save();
-
-        // For debugging
-        if (status === 'completed') {
-            console.log(`After save, order has completedAt: ${order.completedAt}`);
-        }
-
-        const updatedOrder = Order.present(order);
-
-        // Push the status change out immediately instead of waiting for the next poll
-        if (req.app.io) {
-            req.app.io.to('waiter').emit('order_status_updated', updatedOrder);
-            req.app.io.to('bartender').emit('order_status_updated', updatedOrder);
-            req.app.io.to('admin').emit('order_status_updated', updatedOrder);
-        }
-
-        res.json(updatedOrder);
-    } catch (err) {
-        console.error('Error updating order status:', err.message);
-
-        if (notFoundOnBadId(err, res)) return;
-
-        res.status(500).json({ msg: 'Server error', error: err.message });
-    }
-});
+// IMPORTANT: Define all non-ID routes BEFORE the ID routes, otherwise
+// e.g. GET /popular-items matches GET /:id with id="popular-items"!
 
 // @route   GET /api/orders/stats/summary
 // @desc    Get order statistics summary
@@ -444,6 +335,118 @@ router.get('/popular-items', auth, adminOnly, async (req, res) => {
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server error');
+    }
+});
+
+// @route   GET /api/orders/:id
+// @desc    Get order by ID
+// @access  Private
+router.get('/:id', auth, async (req, res) => {
+    try {
+        const order = await Order.findByPk(req.params.id, {
+            include: [{ model: User, as: 'creator', attributes: ['name', 'username'] }]
+        });
+
+        if (!order) {
+            return res.status(404).json({ msg: 'Order not found' });
+        }
+
+        // Check if user has access to this order (for waiters)
+        if (req.user.role === 'waiter' && order.createdBy !== req.user.id) {
+            return res.status(403).json({ msg: 'Not authorized to view this order' });
+        }
+
+        res.json(Order.present(order));
+    } catch (err) {
+        console.error(err.message);
+
+        if (notFoundOnBadId(err, res)) return;
+
+        res.status(500).send('Server error');
+    }
+});
+
+// @route   PUT /api/orders/:id/status
+// @desc    Update order status
+// @access  Private
+router.put('/:id/status', auth, async (req, res) => {
+    try {
+        const { status } = req.body;
+
+        if (!status) {
+            return res.status(400).json({ msg: 'Please provide status' });
+        }
+
+        // Validate status based on role
+        if (req.user.role === 'bartender') {
+            if (!['in-progress', 'completed'].includes(status)) {
+                return res.status(403).json({
+                    msg: 'Bartenders can only set orders to in-progress or completed'
+                });
+            }
+        } else if (req.user.role === 'waiter') {
+            if (!['cancelled'].includes(status)) {
+                return res.status(403).json({
+                    msg: 'Waiters can only cancel orders'
+                });
+            }
+        } else if (req.user.role === 'admin') {
+            // Admin can set any status
+            if (!['pending', 'in-progress', 'completed', 'cancelled'].includes(status)) {
+                return res.status(400).json({
+                    msg: 'Invalid status value'
+                });
+            }
+        } else {
+            return res.status(403).json({
+                msg: 'Role not recognized'
+            });
+        }
+
+        // Find order
+        const order = await Order.findByPk(req.params.id);
+
+        if (!order) {
+            return res.status(404).json({ msg: 'Order not found' });
+        }
+
+        // Check if waiter is the creator of the order (only applies to waiters)
+        if (req.user.role === 'waiter' && order.createdBy !== req.user.id) {
+            return res.status(403).json({ msg: 'Not authorized to update this order' });
+        }
+
+        // Update order status
+        order.status = status;
+
+        // IMPORTANT: If status is completed, set completedAt
+        if (status === 'completed') {
+            order.completedAt = new Date();
+            console.log(`Order ${order.id} marked as completed at ${order.completedAt}`);
+        }
+
+        await order.save();
+
+        // For debugging
+        if (status === 'completed') {
+            console.log(`After save, order has completedAt: ${order.completedAt}`);
+        }
+
+        const updatedOrder = Order.present(order);
+
+        // Push the status change out immediately instead of waiting for the next poll
+        if (req.app.io) {
+            req.app.io.to('waiter').emit('order_status_updated', updatedOrder);
+            req.app.io.to('bartender').emit('order_status_updated', updatedOrder);
+            req.app.io.to('admin').emit('order_status_updated', updatedOrder);
+        }
+
+        res.json(updatedOrder);
+    } catch (err) {
+        console.error('Error updating order status:', err.message);
+
+        if (notFoundOnBadId(err, res)) return;
+
+        res.status(500).json({ msg: 'Server error', error: err.message });
     }
 });
 

@@ -31,14 +31,6 @@ app.use(cors());
 // Connect to the database
 const sequelize = require('./models/db');
 
-sequelize.authenticate()
-    .then(() => {
-        console.log('Database connected');
-        return sequelize.sync();
-    })
-    .then(() => console.log('Database schema synced'))
-    .catch(err => console.error('Database connection error:', err));
-
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -264,15 +256,24 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Start server
-server.listen(PORT, '0.0.0.0', async () => {
-    console.log(`Server running on port ${PORT}`);
+// Connect to the database, then start the server once the schema is ready
+sequelize.authenticate()
+    .then(() => {
+        console.log('Database connected');
+        return sequelize.sync();
+    })
+    .then(async () => {
+        console.log('Database schema synced');
 
-    try {
         console.log('Initializing admin user...');
         await createInitialAdmin();
         console.log('Admin user initialization complete');
-    } catch (err) {
-        console.error('Failed to initialize admin user:', err);
-    }
-});
+
+        server.listen(PORT, '0.0.0.0', () => {
+            console.log(`Server running on port ${PORT}`);
+        });
+    })
+    .catch(err => {
+        console.error('Database connection error:', err);
+        process.exit(1);
+    });
