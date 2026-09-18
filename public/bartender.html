@@ -267,12 +267,14 @@
                     <div class="stat-value" id="pendingCount">0</div>
                     <div class="stat-label">Pending</div>
                 </div>
-                <div class="stat-box" id="completedStatBox" onclick="toggleRecentlyCompleted()" style="cursor: pointer;" title="Click to see what you completed in the last 10 minutes">
-                    <div class="stat-value" id="completedCount">0</div>
-                    <div class="stat-label">Completed (10 min)</div>
+                <div class="stat-box">
+                    <div class="stat-value" id="completedTodayCount">0</div>
+                    <div class="stat-label">Completed Today</div>
                 </div>
             </div>
         </div>
+
+        <button id="recentlyCompletedToggle" class="complete-btn" onclick="toggleRecentlyCompleted()" style="margin-bottom: 15px;">Show what I completed in the last 10 min</button>
 
         <div class="orders-container" id="recentlyCompletedContainer" style="display: none; margin-bottom: 15px;">
             <!-- Recently-completed orders (last 10 min, this bartender only) are shown here -->
@@ -443,10 +445,7 @@
 
                     // Update stats
                     const pendingCountEl = document.getElementById('pendingCount');
-                    const completedCountEl = document.getElementById('completedCount');
-                    
                     if (pendingCountEl) pendingCountEl.textContent = '0';
-                    if (completedCountEl) completedCountEl.textContent = '0';
                     return;
                 }
 
@@ -454,15 +453,9 @@
                     noOrders.style.display = 'none';
                 }
 
-                // Count stats
-                const pendingCount = orders.filter(order => order.status === 'pending').length;
-                const completedCount = orders.filter(order => order.status === 'completed').length;
-
+                // Count stats. orders here is always pending-only (see note below).
                 const pendingCountEl = document.getElementById('pendingCount');
-                const completedCountEl = document.getElementById('completedCount');
-                
-                if (pendingCountEl) pendingCountEl.textContent = pendingCount;
-                if (completedCountEl) completedCountEl.textContent = completedCount;
+                if (pendingCountEl) pendingCountEl.textContent = orders.length;
 
                 // Generate HTML for orders. The server only ever returns
                 // pending orders to bartenders, so there's nothing to filter
@@ -528,9 +521,11 @@
         // Orders this bartender completed in the last 10 minutes - a quick
         // "did I forget something" check, not order history. The server
         // enforces both the 10-minute window and that it's only orders this
-        // bartender personally completed.
+        // bartender personally completed. Kept separate from the "Completed
+        // Today" stat, which is a daily total across all bartenders.
         let recentlyCompletedVisible = false;
         let recentlyCompletedOrders = [];
+        const expandedCompletedOrderIds = new Set();
 
         async function loadRecentlyCompleted() {
             try {
@@ -545,8 +540,11 @@
 
                 recentlyCompletedOrders = await response.json();
 
-                const completedCountEl = document.getElementById('completedCount');
-                if (completedCountEl) completedCountEl.textContent = recentlyCompletedOrders.length;
+                // Drop expansion state for orders that dropped out of the window
+                const stillPresent = new Set(recentlyCompletedOrders.map(o => o._id));
+                for (const id of expandedCompletedOrderIds) {
+                    if (!stillPresent.has(id)) expandedCompletedOrderIds.delete(id);
+                }
 
                 if (recentlyCompletedVisible) {
                     renderRecentlyCompleted();
@@ -556,12 +554,42 @@
             }
         }
 
+        // Total orders completed today (all bartenders) - purely informational
+        async function loadCompletedTodayCount() {
+            try {
+                const authToken = localStorage.getItem('authToken');
+                if (!authToken) return;
+
+                // Same "before 3am counts as yesterday" business-day rule the
+                // waiter view uses, computed here (client-side) since the
+                // server doesn't know the bar's local timezone.
+                const now = new Date();
+                const businessDay = now.getHours() < 3 ? new Date(now.getTime() - 24 * 60 * 60 * 1000) : now;
+                const since = new Date(businessDay);
+                since.setHours(3, 0, 0, 0);
+
+                const response = await fetch(`${CONFIG.baseUrl}/api/orders/stats/completed-today?since=${since.toISOString()}`, {
+                    headers: { 'x-auth-token': authToken }
+                });
+
+                if (!response.ok) return;
+
+                const { count } = await response.json();
+                const el = document.getElementById('completedTodayCount');
+                if (el) el.textContent = count;
+            } catch (error) {
+                console.warn('Error loading completed-today count:', error);
+            }
+        }
+
         function toggleRecentlyCompleted() {
             recentlyCompletedVisible = !recentlyCompletedVisible;
             const container = document.getElementById('recentlyCompletedContainer');
+            const button = document.getElementById('recentlyCompletedToggle');
             if (!container) return;
 
             container.style.display = recentlyCompletedVisible ? 'block' : 'none';
+            if (button) button.textContent = recentlyCompletedVisible ? 'Hide recently completed' : 'Show what I completed in the last 10 min';
 
             if (recentlyCompletedVisible) {
                 renderRecentlyCompleted();
@@ -586,7 +614,7 @@
                         </div>
                         <div class="order-table">Table ${escapeHtml(order.table)}</div>
                     </div>
-                    <div class="order-items" id="completed-items-${order._id}" style="display: none;">
+                    <div class="order-items" id="completed-items-${order._id}" style="display: ${expandedCompletedOrderIds.has(order._id) ? 'block' : 'none'};">
                         ${order.items.map(item => `
                             <div class="order-item">
                                 <div class="item-name">${escapeHtml(item.name)}
@@ -601,9 +629,15 @@
         }
 
         function toggleCompletedOrderDetails(orderId) {
+            if (expandedCompletedOrderIds.has(orderId)) {
+                expandedCompletedOrderIds.delete(orderId);
+            } else {
+                expandedCompletedOrderIds.add(orderId);
+            }
+
             const itemsEl = document.getElementById(`completed-items-${orderId}`);
             if (!itemsEl) return;
-            itemsEl.style.display = itemsEl.style.display === 'none' ? 'block' : 'none';
+            itemsEl.style.display = expandedCompletedOrderIds.has(orderId) ? 'block' : 'none';
         }
 
         // Mark order as complete
@@ -636,6 +670,7 @@
                 // Reload orders
                 loadOrders();
                 loadRecentlyCompleted();
+                loadCompletedTodayCount();
             } catch (error) {
                 console.error('Error completing order:', error);
                 alert('Error completing order: ' + error.message);
@@ -658,6 +693,7 @@
             // Load initial orders
             loadOrders();
             loadRecentlyCompleted();
+            loadCompletedTodayCount();
 
             // Setup Socket.io if available
             if (window.io) {
@@ -725,9 +761,10 @@
                 }
             });
             
-            // Refresh orders periodically (every 30 seconds)
+            // Refresh orders periodically (every 3 seconds)
             setInterval(loadOrders, 3000);
             setInterval(loadRecentlyCompleted, 3000);
+            setInterval(loadCompletedTodayCount, 3000);
 
             // Add manual refresh button
             const refreshButton = document.createElement('button');

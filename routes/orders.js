@@ -242,6 +242,30 @@ router.delete('/clear/:period', auth, adminOnly, async (req, res) => {
 // IMPORTANT: Define all non-ID routes BEFORE the ID routes, otherwise
 // e.g. GET /popular-items matches GET /:id with id="popular-items"!
 
+// @route   GET /api/orders/stats/completed-today
+// @desc    Total count of orders completed today, across all bartenders
+// @access  Private (any authenticated role)
+router.get('/stats/completed-today', auth, async (req, res) => {
+    try {
+        // "since" is the caller's business-day start (e.g. today at 3am
+        // local time), computed client-side since the server doesn't know
+        // the bar's local timezone. Falls back to server-midnight if absent.
+        const since = req.query.since ? new Date(req.query.since) : new Date(new Date().setHours(0, 0, 0, 0));
+
+        const count = await Order.count({
+            where: {
+                status: 'completed',
+                completedAt: { [Op.gte]: since }
+            }
+        });
+
+        res.json({ count });
+    } catch (err) {
+        console.error('Error counting completed-today orders:', err);
+        res.status(500).send('Server error');
+    }
+});
+
 // @route   GET /api/orders/stats/summary
 // @desc    Get order statistics summary
 // @access  Private (admin only)
