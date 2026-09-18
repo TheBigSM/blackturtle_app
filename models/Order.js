@@ -46,6 +46,14 @@ const Order = sequelize.define('Order', {
         type: DataTypes.DATE,
         allowNull: true,
         defaultValue: null
+    },
+    completedBy: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+            model: User,
+            key: 'id'
+        }
     }
 }, {
     timestamps: true

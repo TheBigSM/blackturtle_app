@@ -125,10 +125,19 @@ router.get('/', auth, async (req, res) => {
         const where = {};
 
         if (req.user.role === 'bartender') {
-            // Bartenders only ever see pending orders, regardless of any
-            // status filter they might pass - completed/cancelled history
-            // isn't their concern.
-            where.status = 'pending';
+            if (req.query.status === 'completed') {
+                // Bartenders can look back at what THEY completed, but only
+                // within the last 10 minutes - a quick "did I forget
+                // something" check, not order history.
+                const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+                where.status = 'completed';
+                where.completedBy = req.user.id;
+                where.completedAt = { [Op.gte]: tenMinutesAgo };
+            } else {
+                // Otherwise bartenders only ever see pending orders,
+                // regardless of any other status filter they might pass.
+                where.status = 'pending';
+            }
         } else if (req.query.status) {
             // Handle comma-separated status values
             if (req.query.status.includes(',')) {
@@ -456,9 +465,10 @@ router.put('/:id/status', auth, async (req, res) => {
         // Update order status
         order.status = status;
 
-        // IMPORTANT: If status is completed, set completedAt
+        // IMPORTANT: If status is completed, set completedAt/completedBy
         if (status === 'completed') {
             order.completedAt = new Date();
+            order.completedBy = req.user.id;
             console.log(`Order ${order.id} marked as completed at ${order.completedAt}`);
         }
 

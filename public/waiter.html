@@ -320,8 +320,9 @@
         }
 
         #tableAreaSelect, #tableSelect {
-            height: 40px;  /* Increased from default */
-            padding: 12px 15px;  /* More padding for better touch targets */
+            height: auto;
+            min-height: 44px;  /* Touch target size, without clipping text like a fixed height did */
+            padding: 10px 15px;
             font-size: 16px;  /* Larger text */
             margin-bottom: 12px;  /* More space between elements */
         }

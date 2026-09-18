@@ -267,13 +267,17 @@
                     <div class="stat-value" id="pendingCount">0</div>
                     <div class="stat-label">Pending</div>
                 </div>
-                <div class="stat-box">
+                <div class="stat-box" id="completedStatBox" onclick="toggleRecentlyCompleted()" style="cursor: pointer;" title="Click to see what you completed in the last 10 minutes">
                     <div class="stat-value" id="completedCount">0</div>
-                    <div class="stat-label">Completed</div>
+                    <div class="stat-label">Completed (10 min)</div>
                 </div>
             </div>
         </div>
-        
+
+        <div class="orders-container" id="recentlyCompletedContainer" style="display: none; margin-bottom: 15px;">
+            <!-- Recently-completed orders (last 10 min, this bartender only) are shown here -->
+        </div>
+
         <div class="orders-container" id="ordersContainer">
             <!-- Orders will be displayed here -->
             <div class="no-orders" id="noOrders">
@@ -520,7 +524,88 @@
                 ordersContainer.innerHTML = `<div class="error-message">Error loading orders: ${error.message}</div>`;
             }
         }
-        
+
+        // Orders this bartender completed in the last 10 minutes - a quick
+        // "did I forget something" check, not order history. The server
+        // enforces both the 10-minute window and that it's only orders this
+        // bartender personally completed.
+        let recentlyCompletedVisible = false;
+        let recentlyCompletedOrders = [];
+
+        async function loadRecentlyCompleted() {
+            try {
+                const authToken = localStorage.getItem('authToken');
+                if (!authToken) return;
+
+                const response = await fetch(`${CONFIG.baseUrl}/api/orders?status=completed`, {
+                    headers: { 'x-auth-token': authToken }
+                });
+
+                if (!response.ok) return;
+
+                recentlyCompletedOrders = await response.json();
+
+                const completedCountEl = document.getElementById('completedCount');
+                if (completedCountEl) completedCountEl.textContent = recentlyCompletedOrders.length;
+
+                if (recentlyCompletedVisible) {
+                    renderRecentlyCompleted();
+                }
+            } catch (error) {
+                console.warn('Error loading recently completed orders:', error);
+            }
+        }
+
+        function toggleRecentlyCompleted() {
+            recentlyCompletedVisible = !recentlyCompletedVisible;
+            const container = document.getElementById('recentlyCompletedContainer');
+            if (!container) return;
+
+            container.style.display = recentlyCompletedVisible ? 'block' : 'none';
+
+            if (recentlyCompletedVisible) {
+                renderRecentlyCompleted();
+            }
+        }
+
+        function renderRecentlyCompleted() {
+            const container = document.getElementById('recentlyCompletedContainer');
+            if (!container) return;
+
+            if (recentlyCompletedOrders.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 15px; color: #666;">Nothing completed in the last 10 minutes</div>';
+                return;
+            }
+
+            container.innerHTML = recentlyCompletedOrders.map(order => `
+                <div class="order-card completed-order" onclick="toggleCompletedOrderDetails('${order._id}')" style="cursor: pointer;">
+                    <div class="order-header">
+                        <div>
+                            <div class="order-id">Order #${order.number}</div>
+                            <div class="order-timestamp">Completed at ${formatTimestamp(order.completedAt)}</div>
+                        </div>
+                        <div class="order-table">Table ${escapeHtml(order.table)}</div>
+                    </div>
+                    <div class="order-items" id="completed-items-${order._id}" style="display: none;">
+                        ${order.items.map(item => `
+                            <div class="order-item">
+                                <div class="item-name">${escapeHtml(item.name)}
+                                    ${item.comment ? `<div class="item-comment">${escapeHtml(item.comment)}</div>` : ''}
+                                </div>
+                                <div class="item-quantity">x${item.quantity}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleCompletedOrderDetails(orderId) {
+            const itemsEl = document.getElementById(`completed-items-${orderId}`);
+            if (!itemsEl) return;
+            itemsEl.style.display = itemsEl.style.display === 'none' ? 'block' : 'none';
+        }
+
         // Mark order as complete
         // Mark order as complete
         async function completeOrder(orderId) {
@@ -550,6 +635,7 @@
 
                 // Reload orders
                 loadOrders();
+                loadRecentlyCompleted();
             } catch (error) {
                 console.error('Error completing order:', error);
                 alert('Error completing order: ' + error.message);
@@ -571,7 +657,8 @@
             
             // Load initial orders
             loadOrders();
-            
+            loadRecentlyCompleted();
+
             // Setup Socket.io if available
             if (window.io) {
                 debug('Setting up Socket.io connection');
@@ -640,6 +727,7 @@
             
             // Refresh orders periodically (every 30 seconds)
             setInterval(loadOrders, 3000);
+            setInterval(loadRecentlyCompleted, 3000);
 
             // Add manual refresh button
             const refreshButton = document.createElement('button');

@@ -21,15 +21,23 @@ router.post('/login', async (req, res) => {
 
         let user;
 
-        // For bartender role using access code
+        // For bartender role using access code. There can be more than one
+        // bartender account, and each has their own code, so check the
+        // entered code against every bartender rather than just the first
+        // one found.
         if (role === 'bartender' && accessCode) {
-            user = await User.findOne({ where: { role: 'bartender' } });
+            const bartenders = await User.findAll({ where: { role: 'bartender', active: true } });
 
-            // Debug - bartender found?
+            for (const candidate of bartenders) {
+                if (await candidate.checkAccessCode(accessCode)) {
+                    user = candidate;
+                    break;
+                }
+            }
+
             console.log('Bartender login:', { found: !!user, userId: user?.id });
 
-            if (!user || !(await user.checkAccessCode(accessCode))) {
-                // Debug - access code valid?
+            if (!user) {
                 console.log('Access code check failed');
                 return res.status(400).json({ msg: 'Invalid credentials' });
             }
@@ -45,6 +53,11 @@ router.post('/login', async (req, res) => {
                 requestedRole: role,
                 actualRole: user?.role
             });
+
+            if (user && !user.active) {
+                console.log('Login rejected: user is deactivated');
+                return res.status(403).json({ msg: 'This account has been deactivated' });
+            }
 
             // Check if user exists and password is correct
             if (!user || !(await user.checkPassword(password))) {
