@@ -1,73 +1,70 @@
 // models/User.js
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
 const bcrypt = require('bcryptjs');
+const sequelize = require('./db');
 
-const UserSchema = new mongoose.Schema({
+const User = sequelize.define('User', {
+    id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true
+    },
+    _id: {
+        type: DataTypes.VIRTUAL,
+        get() {
+            return this.id;
+        }
+    },
     name: {
-        type: String,
-        required: true
+        type: DataTypes.STRING,
+        allowNull: false
     },
     username: {
-        type: String,
-        required: true,
+        type: DataTypes.STRING,
+        allowNull: false,
         unique: true
     },
     password: {
-        type: String,
-        required: true
+        type: DataTypes.STRING,
+        allowNull: false
     },
     accessCode: {
-        type: String
+        type: DataTypes.STRING,
+        allowNull: true
     },
     role: {
-        type: String,
-        enum: ['admin', 'waiter', 'bartender'],
-        required: true
+        type: DataTypes.ENUM('admin', 'waiter', 'bartender'),
+        allowNull: false
     },
     active: {
-        type: Boolean,
-        default: true
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
     }
-});
+}, {
+    timestamps: true,
+    updatedAt: false,
+    hooks: {
+        beforeSave: async (user) => {
+            const salt = await bcrypt.genSalt(10);
 
-// Hash password before saving
-UserSchema.pre('save', async function(next) {
-    // Only hash if password is modified or it's a new user
-    if (!this.isModified('password') && !this.isModified('accessCode')) {
-        return next();
-    }
-    
-    try {
-        const salt = await bcrypt.genSalt(10);
-        
-        // Hash password if it exists and was modified
-        if (this.isModified('password')) {
-            this.password = await bcrypt.hash(this.password, salt);
+            if (user.changed('password')) {
+                user.password = await bcrypt.hash(user.password, salt);
+            }
+
+            if (user.accessCode && user.changed('accessCode')) {
+                user.accessCode = await bcrypt.hash(user.accessCode, salt);
+            }
         }
-        
-        // Hash accessCode if it exists and was modified
-        if (this.accessCode && this.isModified('accessCode')) {
-            this.accessCode = await bcrypt.hash(this.accessCode, salt);
-        }
-        
-        next();
-    } catch (error) {
-        next(error);
     }
 });
 
 // Method to check if password is valid
-UserSchema.methods.checkPassword = async function(enteredPassword) {
+User.prototype.checkPassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
 
 // Method to check if access code is valid
-UserSchema.methods.checkAccessCode = async function(enteredAccessCode) {
-    // Handle both password and accessCode authentication methods
+User.prototype.checkAccessCode = async function (enteredAccessCode) {
     if (this.accessCode) {
         return await bcrypt.compare(enteredAccessCode, this.accessCode);
     } else if (this.password) {
@@ -76,4 +73,4 @@ UserSchema.methods.checkAccessCode = async function(enteredAccessCode) {
     return false;
 };
 
-module.exports = mongoose.model('User', UserSchema);
+module.exports = User;

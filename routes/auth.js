@@ -10,52 +10,52 @@ const User = require('../models/User');
 router.post('/login', async (req, res) => {
     try {
         const { username, password, accessCode, role } = req.body;
-        
+
         // Debug log - what credentials are coming in
-        console.log('Login attempt:', { 
-            username, 
-            role, 
-            hasPassword: !!password, 
-            hasAccessCode: !!accessCode 
+        console.log('Login attempt:', {
+            username,
+            role,
+            hasPassword: !!password,
+            hasAccessCode: !!accessCode
         });
-        
+
         let user;
-        
+
         // For bartender role using access code
         if (role === 'bartender' && accessCode) {
-            user = await User.findOne({ role: 'bartender' });
-            
+            user = await User.findOne({ where: { role: 'bartender' } });
+
             // Debug - bartender found?
-            console.log('Bartender login:', { found: !!user, userId: user?._id });
-            
+            console.log('Bartender login:', { found: !!user, userId: user?.id });
+
             if (!user || !(await user.checkAccessCode(accessCode))) {
                 // Debug - access code valid?
                 console.log('Access code check failed');
                 return res.status(400).json({ msg: 'Invalid credentials' });
             }
-        } 
+        }
         // For other roles using username/password
         else if (username && password) {
-            user = await User.findOne({ username });
-            
+            user = await User.findOne({ where: { username } });
+
             // Debug - user found?
-            console.log('Username login:', { 
-                found: !!user, 
-                userId: user?._id,
+            console.log('Username login:', {
+                found: !!user,
+                userId: user?.id,
                 requestedRole: role,
                 actualRole: user?.role
             });
-            
+
             // Check if user exists and password is correct
             if (!user || !(await user.checkPassword(password))) {
                 // Debug - which check failed?
-                console.log('Login failed:', { 
-                    userExists: !!user, 
+                console.log('Login failed:', {
+                    userExists: !!user,
                     passwordCheck: user ? 'failed' : 'not attempted'
                 });
                 return res.status(400).json({ msg: 'Invalid credentials' });
             }
-            
+
             // Check if role matches (if role is specified)
             if (role && user.role !== role) {
                 console.log('Role mismatch:', { requested: role, actual: user.role });
@@ -66,16 +66,16 @@ router.post('/login', async (req, res) => {
             console.log('Missing credentials');
             return res.status(400).json({ msg: 'Please provide valid credentials' });
         }
-        
+
         // Create JWT token
         const payload = {
             id: user.id,
             role: user.role
         };
-        
+
         // Sign token
         const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' });
-        
+
         res.json({
             token,
             user: {
@@ -98,21 +98,23 @@ router.get('/me', async (req, res) => {
     try {
         // Get user from JWT token
         const token = req.header('x-auth-token');
-        
+
         if (!token) {
             return res.status(401).json({ msg: 'No token, authorization denied' });
         }
-        
+
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-            
+
             // Find user
-            const user = await User.findById(decoded.user.id).select('-password -accessCode');
-            
+            const user = await User.findByPk(decoded.id, {
+                attributes: { exclude: ['password', 'accessCode'] }
+            });
+
             if (!user) {
                 return res.status(404).json({ msg: 'User not found' });
             }
-            
+
             res.json(user);
         } catch (err) {
             res.status(401).json({ msg: 'Token is not valid' });

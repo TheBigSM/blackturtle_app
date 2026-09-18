@@ -1,78 +1,72 @@
 // models/Order.js
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('./db');
+const User = require('./User');
 
-const OrderItemSchema = new mongoose.Schema({
+const Order = sequelize.define('Order', {
     id: {
-        type: String,
-        required: true
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true
     },
-    name: {
-        type: String,
-        required: true
+    _id: {
+        type: DataTypes.VIRTUAL,
+        get() {
+            return this.id;
+        }
     },
-    price: {
-        type: Number,
-        required: true
-    },
-    quantity: {
-        type: Number,
-        required: true,
-        min: 1
-    },
-    comment: {
-        type: String,
-        default: ''
-    }
-});
-
-const OrderSchema = new mongoose.Schema({
     number: {
-        type: Number,
-        required: true
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        allowNull: false
     },
     table: {
-        type: String,
-        required: true
+        type: DataTypes.STRING,
+        allowNull: false
     },
-    items: [OrderItemSchema],
+    items: {
+        type: DataTypes.JSONB,
+        allowNull: false,
+        defaultValue: []
+    },
     status: {
-        type: String,
-        required: true,
-        enum: ['pending', 'in-progress', 'completed', 'cancelled'],
-        default: 'pending'
+        type: DataTypes.ENUM('pending', 'in-progress', 'completed', 'cancelled'),
+        allowNull: false,
+        defaultValue: 'pending'
     },
     createdBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    },
-    updatedAt: {
-        type: Date,
-        default: Date.now
+        type: DataTypes.UUID,
+        allowNull: false,
+        references: {
+            model: User,
+            key: 'id'
+        }
     },
     completedAt: {
-        type: Date,
-        default: null
+        type: DataTypes.DATE,
+        allowNull: true,
+        defaultValue: null
     }
-}, { timestamps: true });
-
-// Auto-increment order number
-OrderSchema.pre('validate', async function(next) {
-    if (this.isNew && !this.number) {
-        try {
-            const lastOrder = await this.constructor.findOne({}, {}, { sort: { 'number': -1 } });
-            this.number = lastOrder ? lastOrder.number + 1 : 1;
-            next();
-        } catch (error) {
-            next(error);
-        }
-    } else {
-        next();
-    }
+}, {
+    timestamps: true
 });
 
-module.exports = mongoose.model('Order', OrderSchema);
+Order.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
+
+// Turn a fetched order into the API shape the frontend expects:
+// _id instead of id, and createdBy as a populated { _id, name, username } object
+// when the 'creator' association was included, otherwise left as the raw id.
+Order.present = function (order) {
+    const o = order.toJSON();
+    if (o.creator) {
+        o.createdBy = {
+            _id: o.createdBy,
+            name: o.creator.name,
+            username: o.creator.username
+        };
+        delete o.creator;
+    }
+    return o;
+};
+
+module.exports = Order;
