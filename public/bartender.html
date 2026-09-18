@@ -347,13 +347,20 @@
         // Format timestamp
         function formatTimestamp(timestamp) {
             if (!timestamp) return 'Unknown time';
-            
+
             const date = new Date(timestamp);
             const hours = date.getHours().toString().padStart(2, '0');
             const minutes = date.getMinutes().toString().padStart(2, '0');
             return `${hours}:${minutes}`;
         }
-        
+
+        // Escape untrusted strings (order table, item names/comments) before inserting into innerHTML
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str == null ? '' : String(str);
+            return div.innerHTML;
+        }
+
         // Load orders from backend
         // Load orders from backend
         // Update the loadOrders function to fetch all users and map their names to orders
@@ -485,14 +492,14 @@
                                         <span class="order-creator">• Sent by: ${creatorName}</span>
                                     </div>
                                 </div>
-                                <div class="order-table">Table ${order.table}</div>
+                                <div class="order-table">Table ${escapeHtml(order.table)}</div>
                             </div>
-                            
+
                             <div class="order-items">
                                 ${order.items.map(item => `
                                     <div class="order-item">
-                                        <div class="item-name">${item.name}
-                                            ${item.comment ? `<div class="item-comment">${item.comment}</div>` : ''}
+                                        <div class="item-name">${escapeHtml(item.name)}
+                                            ${item.comment ? `<div class="item-comment">${escapeHtml(item.comment)}</div>` : ''}
                                         </div>
                                         <div class="item-quantity">x${item.quantity}</div>
                                     </div>
@@ -576,7 +583,7 @@
                     debug('Socket.io connected');
 
                     // Join bartender room
-                    socket.emit('join', 'bartender');
+                    socket.emit('join', { role: 'bartender', token: localStorage.getItem('authToken') });
                     debug('Joined bartender room');
                 });
 

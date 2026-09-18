@@ -661,6 +661,13 @@
                 });
         });
 
+        // Escape untrusted strings (order table, item names/comments, user names) before inserting into innerHTML
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str == null ? '' : String(str);
+            return div.innerHTML;
+        }
+
         // Extract the tab setup to a separate function
         function setupTabs() {
             document.querySelectorAll('.tab').forEach(tab => {
@@ -926,11 +933,11 @@
                     
                     row.innerHTML = `
                         <td>${order.number}</td>
-                        <td>${order.table}</td>
+                        <td>${escapeHtml(order.table)}</td>
                         <td><span class="status-badge ${statusClass}">${order.status}</span></td>
                         <td>${order.items.length} items</td>
                         <td>RSD ${total.toFixed(2)}</td>
-                        <td>${waiterName}</td>
+                        <td>${escapeHtml(waiterName)}</td>
                         <td>${formattedDate}</td>
                         <td>
                             <button class="btn" onclick="viewOrderDetails('${order._id}')">Details</button>
@@ -1157,21 +1164,21 @@
                 return `
                     <div class="order-item">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                            <div><strong>${item.name}</strong> x${item.quantity}</div>
+                            <div><strong>${escapeHtml(item.name)}</strong> x${item.quantity}</div>
                             <div>RSD ${(item.price * item.quantity).toFixed(2)}</div>
                         </div>
-                        ${item.comment ? `<div style="font-style: italic; color: #666;">${item.comment}</div>` : ''}
+                        ${item.comment ? `<div style="font-style: italic; color: #666;">${escapeHtml(item.comment)}</div>` : ''}
                     </div>
                 `;
             }).join('');
-            
+
             // Set modal content
             content.innerHTML = `
                 <div style="margin-bottom: 20px;">
                     <h3 style="margin: 0 0 15px 0;">Order #${order.number}</h3>
-                    <p><strong>Table:</strong> ${order.table}</p>
+                    <p><strong>Table:</strong> ${escapeHtml(order.table)}</p>
                     <p><strong>Status:</strong> ${order.status}</p>
-                    <p><strong>Waiter:</strong> ${waiterName}</p>
+                    <p><strong>Waiter:</strong> ${escapeHtml(waiterName)}</p>
                     <p><strong>Created:</strong> ${createdDate}</p>
                     <p><strong>Completed:</strong> ${completedDate}</p>
                     <p><strong>Total Amount:</strong> RSD ${total.toFixed(2)}</p>
@@ -1348,8 +1355,8 @@
                         : '<span class="badge bg-secondary">Inactive</span>';
                         
                     row.innerHTML = `
-                        <td>${user.name}</td>
-                        <td>${user.username}</td>
+                        <td>${escapeHtml(user.name)}</td>
+                        <td>${escapeHtml(user.username)}</td>
                         <td>${user.role.charAt(0).toUpperCase() + user.role.slice(1)}</td>
                         <td>${statusBadge}</td>
                         <td>${new Date(user.createdAt).toLocaleString()}</td>
@@ -1387,8 +1394,8 @@
                 const createdDate = new Date(user.createdAt).toLocaleDateString();
                 
                 row.innerHTML = `
-                    <td>${user.name}</td>
-                    <td>${user.username}</td>
+                    <td>${escapeHtml(user.name)}</td>
+                    <td>${escapeHtml(user.username)}</td>
                     <td>${user.role.charAt(0).toUpperCase() + user.role.slice(1)}</td>
                     <td>${user.active ? 'Active' : 'Inactive'}</td>
                     <td>${createdDate}</td>
@@ -1704,11 +1711,15 @@
                 
                 // Close modal
                 closeModal('addUserModal');
-                
+
                 // Reload users
                 loadUsers();
-                
-                alert('User added successfully');
+
+                if (result.accessCode) {
+                    alert(`User added successfully.\n\nBartender access code: ${result.accessCode}\n\nWrite this down now - it won't be shown again.`);
+                } else {
+                    alert('User added successfully');
+                }
             })
             .catch(error => {
                 console.error('Error creating user:', error);

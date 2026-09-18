@@ -15,7 +15,7 @@ const auth = (req, res, next) => {
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded;
         next();
     } catch (err) {
@@ -43,16 +43,55 @@ const notFoundOnBadId = (err, res) => {
     return null;
 };
 
+// Basic shape/type validation for order data coming from the client
+const validateOrderInput = (body) => {
+    if (typeof body.table !== 'string' || !body.table.trim()) {
+        return 'Please provide a table';
+    }
+
+    if (!Array.isArray(body.items) || body.items.length === 0) {
+        return 'Please provide at least one item';
+    }
+
+    for (const item of body.items) {
+        if (!item || typeof item.name !== 'string' || !item.name.trim()) {
+            return 'Each item needs a name';
+        }
+        if (typeof item.price !== 'number' || !Number.isFinite(item.price) || item.price < 0) {
+            return 'Each item needs a valid price';
+        }
+        if (!Number.isInteger(item.quantity) || item.quantity < 1) {
+            return 'Each item needs a valid quantity';
+        }
+        if (item.comment !== undefined && typeof item.comment !== 'string') {
+            return 'Item comment must be text';
+        }
+    }
+
+    return null;
+};
+
 // @route   POST /api/orders
 // @desc    Create a new order
 // @access  Private (waiter only)
 router.post('/', auth, async (req, res) => {
     try {
+        const validationError = validateOrderInput(req.body);
+        if (validationError) {
+            return res.status(400).json({ msg: validationError });
+        }
+
         console.log('Order being created by user:', req.user.id);
 
         const order = await Order.create({
             table: req.body.table,
-            items: req.body.items,
+            items: req.body.items.map(item => ({
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity,
+                comment: item.comment || ''
+            })),
             status: 'pending',
             createdBy: req.user.id
         });

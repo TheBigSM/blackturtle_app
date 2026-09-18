@@ -3,11 +3,17 @@ const express = require('express');
 const http = require('http');
 const path = require('path');
 const socketIo = require('socket.io');
+const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 const cors = require('cors');
 
 // Load environment variables
 dotenv.config();
+
+if (!process.env.JWT_SECRET) {
+    console.error('FATAL: JWT_SECRET environment variable is not set. Refusing to start.');
+    process.exit(1);
+}
 
 const PORT = process.env.PORT || 3000;
 
@@ -34,9 +40,6 @@ const sequelize = require('./models/db');
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Import Order model for socket.io events
-const Order = require('./models/Order');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -86,104 +89,37 @@ app.get('/config.js', (req, res) => {
     `);
 });
 
-// Socket.io for real-time communication
+// Socket.io for real-time communication.
+// All order/user mutations happen over the authenticated REST API (see
+// routes/orders.js and routes/users.js), which then broadcasts over these
+// sockets - the sockets here are read-only fan-out, not a second write path.
 io.on('connection', (socket) => {
     console.log('New client connected');
-    
-    // Join a room based on role
-    socket.on('join', (role) => {
-        socket.join(role);
-        console.log(`Socket joined ${role} room`);
-    });
-    
-    // New order event
-    socket.on('new_order', async (orderData) => {
-        try {
-            // Save order to database
-            const order = await Order.create(orderData);
 
-            // Broadcast to all bartenders
-            io.to('bartender').emit('order_received', Order.present(order));
-
-            // Broadcast to admins
-            io.to('admin').emit('order_received', Order.present(order));
-
-            // Acknowledge the order was received
-            socket.emit('order_confirmation', {
-                success: true,
-                orderId: order.id
-            });
-        } catch (error) {
-            console.error('Error saving order:', error);
-            socket.emit('order_confirmation', {
-                success: false,
-                error: 'Failed to save order'
-            });
+    // Join a room based on role. Requires a valid JWT whose role matches the
+    // room being requested, so a socket can't eavesdrop on rooms (e.g. 'admin')
+    // it isn't authorized for without ever logging in.
+    socket.on('join', ({ role, token } = {}) => {
+        if (!token) {
+            console.log('Socket join rejected: no token provided');
+            return;
         }
-    });
 
-    // Order status update
-    socket.on('update_order_status', async (data) => {
         try {
-            const { orderId, status } = data;
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-            // Update order in database
-            const order = await Order.findByPk(orderId);
-
-            if (!order) {
-                return socket.emit('status_update_confirmation', {
-                    success: false,
-                    error: 'Order not found'
-                });
+            if (decoded.role !== role) {
+                console.log(`Socket join rejected: token role "${decoded.role}" does not match requested room "${role}"`);
+                return;
             }
 
-            order.status = status;
-            await order.save();
+            socket.join(decoded.role);
+            console.log(`Socket joined ${decoded.role} room`);
+        } catch (err) {
+            console.log('Socket join rejected: invalid token');
+        }
+    });
 
-            // Broadcast to specific waiter room
-            io.to(`waiter_${order.createdBy}`).emit('order_status_changed', {
-                orderId: order._id,
-                status: order.status,
-                table: order.table
-            });
-            
-            // Broadcast to all waiters
-            io.to('waiter').emit('order_status_changed', {
-                orderId: order._id,
-                status: order.status,
-                table: order.table
-            });
-            
-            // Broadcast to admins
-            io.to('admin').emit('order_status_changed', {
-                orderId: order._id,
-                status: order.status,
-                table: order.table
-            });
-            
-            // Acknowledge the status was updated
-            socket.emit('status_update_confirmation', { 
-                success: true 
-            });
-        } catch (error) {
-            console.error('Error updating order:', error);
-            socket.emit('status_update_confirmation', { 
-                success: false, 
-                error: 'Failed to update order' 
-            });
-        }
-    });
-    
-    // User update event
-    socket.on('user_updated', async (userData) => {
-        try {
-            // Broadcast to admins
-            io.to('admin').emit('user_updated', userData);
-        } catch (error) {
-            console.error('Error broadcasting user update:', error);
-        }
-    });
-    
     // Disconnect
     socket.on('disconnect', () => {
         console.log('Client disconnected');
@@ -209,21 +145,9 @@ async function createInitialAdmin() {
                 role: 'admin'
             });
 
-            console.log('Initial admin user created successfully.');
+            console.log('Initial admin user created successfully. Default login: admin / admin123 - change this password after first login.');
         } else {
-            // Reset admin password to ensure it's correct
-            console.log('Looking for admin user to reset password...');
-            const adminUser = await User.findOne({ where: { username: 'admin', role: 'admin' } });
-
-            if (adminUser) {
-                console.log(`Found admin user with ID: ${adminUser.id}`);
-                // This will trigger the pre-save hook to hash the password
-                adminUser.password = 'admin123';
-                await adminUser.save();
-                console.log('Admin password reset successfully.');
-            } else {
-                console.log('Admin role exists but no user with username "admin" found');
-            }
+            console.log('Admin user(s) already exist, skipping initial admin creation.');
         }
     } catch (error) {
         console.error('Error creating/updating admin user:', error);

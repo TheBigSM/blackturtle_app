@@ -1586,9 +1586,10 @@
             
             socket.on('connect', () => {
                 debug('Socket.io connected');
-                
+
                 // Join waiter room to receive updates
-                socket.emit('join', 'waiter');
+                const authToken = localStorage.getItem('authToken');
+                socket.emit('join', { role: 'waiter', token: authToken });
                 debug('Joined waiter room');
             });
             
@@ -1607,10 +1608,7 @@
                     
                     // Show message bar notification
                     showMessage(`Order #${updatedOrder.number || ''} for Table ${updatedOrder.table} is ready!`);
-                    
-                    // Also show a persistent notification
-                    showCompletedOrderNotification(updatedOrder);
-                    
+
                     // Play a sound to alert the waiter
                     try {
                         const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3');
@@ -1904,36 +1902,43 @@
             updateExistingOrdersStatus(orders);
         }
 
+        // Escape untrusted strings (order table, item names/comments) before inserting into innerHTML
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str == null ? '' : String(str);
+            return div.innerHTML;
+        }
+
         // Function to add a single order to the display
         function addOrderToDisplay(order, container, prepend = false) {
             const total = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const orderTime = new Date(order.createdAt).toLocaleTimeString();
-            
+
             const itemsHtml = order.items.map(item => {
                 const itemTotal = item.price * item.quantity;
                 return `
                     <div style="display: flex; justify-content: space-between; padding: 2px 0; font-size: 12px;">
-                        <span>${item.quantity}x ${item.name}</span>
+                        <span>${item.quantity}x ${escapeHtml(item.name)}</span>
                         <span>RSD${itemTotal.toFixed(2)}</span>
                     </div>
                 `;
             }).join('');
-            
+
             const statusColors = {
                 pending: '#f39c12',
-                sent: '#ff9800', 
+                sent: '#ff9800',
                 prepared: '#2196F3',
                 completed: '#4CAF50'
             };
-            
+
             const orderElement = document.createElement('div');
             orderElement.setAttribute('data-order-id', order._id);
             orderElement.style.cssText = 'border: 1px solid #eee; border-radius: 5px; margin-bottom: 10px; padding: 10px; background-color: #f9f9f9;';
-            
+
             orderElement.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <div style="font-weight: bold; font-size: 14px;">
-                        Sto ${order.table} - #${order._id.slice(-6)}
+                        Sto ${escapeHtml(order.table)} - #${order._id.slice(-6)}
                     </div>
                     <div class="order-status-badge" style="padding: 2px 8px; border-radius: 8px; font-size: 10px; color: white; background-color: ${statusColors[order.status] || '#ccc'};">
                         ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}

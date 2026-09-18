@@ -13,7 +13,7 @@ const auth = (req, res, next) => {
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = decoded;
         next();
     } catch (err) {
@@ -125,6 +125,62 @@ router.get('/names', auth, async (req, res) => {
 });
 
 // NOW DEFINE ID-BASED ROUTES
+
+// @route   PUT /api/users/:id
+// @desc    Update a user's details (name, username, role, active, password)
+// @access  Private (admin only)
+router.put('/:id', auth, adminOnly, async (req, res) => {
+    try {
+        const { name, username, role, active, password } = req.body;
+
+        const user = await User.findByPk(req.params.id);
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        if (role && !['admin', 'waiter', 'bartender'].includes(role)) {
+            return res.status(400).json({ msg: 'Invalid role' });
+        }
+
+        // Protect against locking out or demoting the last admin
+        const removingAdminRights = user.role === 'admin' && ((role && role !== 'admin') || active === false);
+        if (removingAdminRights) {
+            const otherActiveAdmins = await User.count({
+                where: { role: 'admin', active: true, id: { [Op.ne]: user.id } }
+            });
+            if (otherActiveAdmins === 0) {
+                return res.status(400).json({ msg: 'Cannot remove admin rights from the last admin user' });
+            }
+        }
+
+        if (username && username !== user.username) {
+            const existing = await User.findOne({ where: { username } });
+            if (existing) {
+                return res.status(400).json({ msg: 'Username already exists' });
+            }
+            user.username = username;
+        }
+
+        if (name) user.name = name;
+        if (role) user.role = role;
+        if (typeof active === 'boolean') user.active = active;
+        if (password && password.trim() !== '') user.password = password;
+
+        await user.save();
+
+        const updatedUser = await User.findByPk(user.id, {
+            attributes: { exclude: ['password', 'accessCode'] }
+        });
+
+        res.json(updatedUser);
+    } catch (err) {
+        console.error('Error updating user:', err);
+
+        if (notFoundOnBadId(err, res)) return;
+
+        res.status(500).json({ msg: 'Server error', error: err.message });
+    }
+});
 
 // @route   GET /api/users/:id
 // @desc    Get user by ID
@@ -292,12 +348,18 @@ router.post('/', auth, adminOnly, async (req, res) => {
         // Create new user
         user = await User.create({ name, username, password, role, accessCode });
 
-        // Return user without password
+        // Return user without password. The access code is only ever readable
+        // here, right after creation (it's hashed at rest like a password) -
+        // the admin needs to see it now to hand it to the bartender.
         const newUser = await User.findByPk(user.id, {
             attributes: { exclude: ['password', 'accessCode'] }
         });
+        const responseUser = newUser.toJSON();
+        if (accessCode) {
+            responseUser.accessCode = accessCode;
+        }
 
-        res.json(newUser);
+        res.json(responseUser);
     } catch (err) {
         console.error('User creation error:', err.message);
         res.status(500).send('Server error');

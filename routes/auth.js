@@ -104,7 +104,7 @@ router.get('/me', async (req, res) => {
         }
 
         try {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
             // Find user
             const user = await User.findByPk(decoded.id, {
