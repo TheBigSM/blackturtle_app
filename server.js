@@ -39,7 +39,6 @@ const sequelize = require('./models/db');
 
 // Middleware
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -51,10 +50,14 @@ app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes); // Use user routes
 
-// Serve the frontend pages
+// Serve the frontend pages. This is registered before express.static so it
+// takes priority over public/index.html (leftover placeholder marketing
+// content) and actually sends visitors to the staff portal.
 app.get('/', (req, res) => {
     res.redirect('/work');
 });
+
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/work', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'work.html'));
