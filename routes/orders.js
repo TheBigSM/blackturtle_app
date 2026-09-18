@@ -124,8 +124,12 @@ router.get('/', auth, async (req, res) => {
         // Build query object
         const where = {};
 
-        // Filter by status if provided
-        if (req.query.status) {
+        if (req.user.role === 'bartender') {
+            // Bartenders only ever see pending orders, regardless of any
+            // status filter they might pass - completed/cancelled history
+            // isn't their concern.
+            where.status = 'pending';
+        } else if (req.query.status) {
             // Handle comma-separated status values
             if (req.query.status.includes(',')) {
                 where.status = { [Op.in]: req.query.status.split(',') };
@@ -138,11 +142,6 @@ router.get('/', auth, async (req, res) => {
         if (req.user.role === 'waiter') {
             // Waiters can only see their own orders
             where.createdBy = req.user.id;
-        } else if (req.user.role === 'bartender') {
-            // If no status filter provided, show pending and recently completed
-            if (!req.query.status) {
-                where.status = { [Op.in]: ['pending', 'completed'] };
-            }
         }
 
         console.log('Orders query:', where);

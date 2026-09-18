@@ -460,15 +460,14 @@
                 if (pendingCountEl) pendingCountEl.textContent = pendingCount;
                 if (completedCountEl) completedCountEl.textContent = completedCount;
 
-                // Generate HTML for orders
+                // Generate HTML for orders. The server only ever returns
+                // pending orders to bartenders, so there's nothing to filter
+                // out here - a completed order simply won't be in this list
+                // on the next poll.
                 let ordersHTML = '';
-                
+
                 // Update the creator display section in loadOrders
                 orders.forEach(order => {
-                    if (order.status === 'completed' && !order.completedRecently) {
-                        return; // Skip old completed orders
-                    }
-
                     // Get creator name from the userMap instead of the order object
                     let creatorName = 'Unknown';
                     if (order.createdBy) {
