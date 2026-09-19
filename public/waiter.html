@@ -66,7 +66,7 @@
         
         .menu-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 15px;
         }
 
@@ -543,7 +543,7 @@
             }
 
             .menu-grid {
-                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                grid-template-columns: repeat(2, 1fr);
                 gap: 10px;
             }
 
@@ -598,7 +598,7 @@
         /* Adjust grid layout for smaller screens */
         @media (max-width: 480px) {
             .menu-grid {
-                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                grid-template-columns: repeat(2, 1fr);
             }
 
             .menu-item {
@@ -668,7 +668,6 @@
             <div class="category-tab" data-category="toplo">Kafe i čajevi</div>
             <div class="category-tab" data-category="voda">Voda</div>
             <div class="category-tab" data-category="sokovi">Sokovi</div>
-            <div class="category-tab" data-category="cedjeno">Ceđeni sokovi</div>
             <div class="category-tab" data-category="supe">Supe u šolji</div>
             <div class="category-tab" data-category="grickalice">Grickalice</div>
         </div>
@@ -806,155 +805,154 @@
         // Menu data
         const menuData = {
             toceno: [
-                    { id: 't1', name: 'Svetlo 0.3', price: 280.00, color: '#009900' },  // More Irish green for light beer
-                    { id: 't2', name: 'Tamno 0.3', price: 280.00, color: '#5D2906' },   // Darker brown for dark beer
-                    { id: 't3', name: 'Svetlo 0.5', price: 340.00, color: '#009900' },
-                    { id: 't4', name: 'Tamno 0.5', price: 340.00, color: '#5D2906' },
-                    { id: 't5', name: 'Svetlo 1l', price: 640.00, color: '#009900' },
-                    { id: 't6', name: 'Tamno 1l', price: 640.00, color: '#5D2906' },
-                    { id: 't7', name: 'Borovnica 0.3', price: 280.00, color: '#8A2BE2' },  // Lighter purple for blueberry
-                    { id: 't8', name: 'Jagoda 0.3', price: 280.00, color: '#FF3355' },     // More reddish for strawberry
-                    { id: 't9', name: 'Borovnica 0.5', price: 340.00, color: '#8A2BE2' },
-                    { id: 't10', name: 'Jagoda 0.5', price: 340.00, color: '#FF3355' },
-                    { id: 't11', name: 'Borovnica 1l', price: 640.00, color: '#8A2BE2' },
-                    { id: 't12', name: 'Jagoda 1l', price: 640.00, color: '#FF3355' },
-                    { id: 't13', name: 'Sezonsko 0.3', price: 280.00, color: '#FF8C00' },  // More vibrant orange for seasonal
-                    { id: 't14', name: 'Kronenberg 0.3', price: 300.00, color: '#4682B4' }, // Lighter sea blue for Kronenberg
-                    { id: 't15', name: 'Sezonsko 0.5', price: 340.00, color: '#FF8C00' },
-                    { id: 't16', name: 'Kronenberg 0.5', price: 500.00, color: '#4682B4' },
-                    { id: 't17', name: 'Sezonsko 1l', price: 640.00, color: '#FF8C00' },
-                    { id: 't18', name: 'Kronenberg 1.0', price: 1000.00, color: '#4682B4' },
-                    { id: 't19', name: 'Asahi 0.3', price: 300.00, color: '#FFFFFF' },    // White for Asahi (unchanged)
-                    { id: 't20', name: 'Asahi 0.5', price: 500.00, color: '#FFFFFF' },
-                    { id: 't21', name: 'Asahi 1.0', price: 1000.00, color: '#FFFFFF' }
+                    { id: 't1', name: 'Svetlo 0.3', price: 320.00, color: '#009900' },  // More Irish green for light beer
+                    { id: 't2', name: 'Tamno 0.3', price: 320.00, color: '#5D2906' },   // Darker brown for dark beer
+                    { id: 't3', name: 'Svetlo 0.5', price: 370.00, color: '#009900' },
+                    { id: 't4', name: 'Tamno 0.5', price: 370.00, color: '#5D2906' },
+                    { id: 't5', name: 'Svetlo 1l', price: 690.00, color: '#009900' },
+                    { id: 't6', name: 'Tamno 1l', price: 690.00, color: '#5D2906' },
+                    { id: 't7', name: 'Borovnica 0.3', price: 320.00, color: '#8A2BE2' },  // Lighter purple for blueberry
+                    { id: 't8', name: 'Jagoda 0.3', price: 320.00, color: '#FF3355' },     // More reddish for strawberry
+                    { id: 't9', name: 'Borovnica 0.5', price: 370.00, color: '#8A2BE2' },
+                    { id: 't10', name: 'Jagoda 0.5', price: 370.00, color: '#FF3355' },
+                    { id: 't11', name: 'Borovnica 1l', price: 690.00, color: '#8A2BE2' },
+                    { id: 't12', name: 'Jagoda 1l', price: 690.00, color: '#FF3355' },
+                    { id: 't13', name: 'Limun 0.3', price: 320.00, color: '#FFD700' },   // Gold for lemon
+                    { id: 't14', name: 'Sezonsko 0.3', price: 320.00, color: '#FF8C00' }, // Vibrant orange for seasonal
+                    { id: 't15', name: 'Limun 0.5', price: 370.00, color: '#FFD700' },
+                    { id: 't16', name: 'Sezonsko 0.5', price: 370.00, color: '#FF8C00' },
+                    { id: 't17', name: 'Limun 1l', price: 690.00, color: '#FFD700' },
+                    { id: 't18', name: 'Sezonsko 1l', price: 690.00, color: '#FF8C00' }
                 ],
             flasa: [
-                { id: 'f1', name: 'Lav Premium 0.33', price: 330.00 },
-                { id: 'f2', name: 'Carlsberg 0.33', price: 390.00 },
-                { id: 'f3', name: 'Kronenberg 0.33', price: 360.00 },
-                { id: 'f4', name: 'Erdinger 0.33', price: 450.00 },
-                { id: 'f5', name: 'Somersby 0.33', price: 420.00 },
-                { id: 'f6', name: 'Pilsner 0.5', price: 450.00 },
-                { id: 'f7', name: 'Kozel svetli 0.5', price: 450.00 },
-                { id: 'f8', name: 'Kozel tamni 0.5', price: 450.00 },
-                { id: 'f9', name: 'Asahi 0.5', price: 450.00 }
+                { id: 'f1', name: 'Carlsberg 0.25', price: 450.00 },
+                { id: 'f2', name: 'Kronenbourg 1664 Blanc 0.33', price: 420.00 },
+                { id: 'f3', name: 'Erdinger 0.33', price: 510.00 },
+                { id: 'f4', name: 'Somersby Cider 0.33', price: 480.00 },
+                { id: 'f5', name: 'Kozel svetli 0.5', price: 510.00 },
+                { id: 'f6', name: 'Kozel tamni 0.5', price: 510.00 }
             ],
             vina: [
-                { id: 'v1', name: 'Chardonney', price: 400.00 },
-                { id: 'v2', name: 'Rose', price: 400.00 },
-                { id: 'v3', name: 'Vranac', price: 400.00 },
-                { id: 'v4', name: 'Kuvano', price: 290.00 }
+                { id: 'v1', name: 'Villa Chardonney/Muscat', price: 440.00 },
+                { id: 'v2', name: 'Villa Rosse', price: 440.00 },
+                { id: 'v3', name: 'Monarh Vranac/Cuvee', price: 440.00 },
+                { id: 'v4', name: 'Prosecco', price: 590.00 },
+                { id: 'v5', name: 'Kuvano', price: 330.00 }
             ],
             rakija: [
-                { id: 'r1', name: 'Dunja', price: 320.00 },
-                { id: 'r2', name: 'Viljamovka', price: 320.00 },
-                { id: 'r3', name: 'Kajsija', price: 320.00 },
-                { id: 'r4', name: 'Šljiva', price: 300.00 },
-                { id: 'r5', name: 'Medovača', price: 280.00 },
-                { id: 'r6', name: 'Medena malina', price: 280.00 }
+                { id: 'r1', name: 'Dunja', price: 360.00 },
+                { id: 'r2', name: 'Viljamovka', price: 360.00 },
+                { id: 'r3', name: 'Kajsija', price: 360.00 },
+                { id: 'r4', name: 'Šljiva', price: 340.00 },
+                { id: 'r5', name: 'Medovača', price: 320.00 },
+                { id: 'r6', name: 'Medena malina', price: 320.00 }
             ],
             zestina: [
-                { id: 'z1', name: 'Chivas Regal', price: 500.00 },
-                { id: 'z2', name: 'Tullamore Dew', price: 350.00 },
-                { id: 'z3', name: 'Johnnie Walker', price: 320.00 },
-                { id: 'z4', name: 'Ballantines', price: 320.00 },
-                { id: 'z5', name: 'Jack Daniels', price: 410.00 },
-                { id: 'z6', name: 'Jameson', price: 350.00 },
-                { id: 'z7', name: 'Four Roses', price: 350.00 },
-                { id: 'z8', name: 'Absolut Vodka', price: 320.00 },
-                { id: 'z9', name: 'Bacardi', price: 320.00 },
-                { id: 'z10', name: 'Beefetter gin', price: 330.00 },
-                { id: 'z11', name: 'Tequila', price: 320.00 },
-                { id: 'z12', name: 'Amaretto Disarono', price: 320.00 },
-                { id: 'z13', name: 'Amaro Montenegro', price: 320.00 },
-                { id: 'z14', name: 'Jagermeister', price: 320.00 },
-                { id: 'z15', name: 'Campari', price: 320.00 },
-                { id: 'z16', name: 'Ramazzotti', price: 320.00 },
-                { id: 'z17', name: 'Martini', price: 320.00 },
-                { id: 'z18', name: 'Ouzo', price: 320.00 },
-                { id: 'z19', name: 'Pelinkovac', price: 280.00 },
-                { id: 'z20', name: 'Vinjak', price: 280.00 },
-                { id: 'z21', name: 'Aperol', price: 370.00 },
-                { id: 'z22', name: 'Aperol Spritz', price: 600.00 }
+                { id: 'z1', name: 'Chivas Regal', price: 700.00 },
+                { id: 'z2', name: 'Tullamore Dew', price: 410.00 },
+                { id: 'z3', name: 'Johnnie Walker', price: 360.00 },
+                { id: 'z4', name: 'Ballantines', price: 360.00 },
+                { id: 'z5', name: 'Jack Daniels', price: 480.00 },
+                { id: 'z6', name: 'Jameson', price: 410.00 },
+                { id: 'z7', name: 'Four Roses', price: 410.00 },
+                { id: 'z8', name: 'Absolut Vodka', price: 360.00 },
+                { id: 'z9', name: 'Bacardi', price: 360.00 },
+                { id: 'z10', name: 'Beefeater gin', price: 360.00 },
+                { id: 'z11', name: 'Craft gin', price: 390.00 },
+                { id: 'z12', name: 'Tequila', price: 360.00 },
+                { id: 'z13', name: 'Amaretto Disarono', price: 360.00 },
+                { id: 'z14', name: 'Amaro Montenegro', price: 360.00 },
+                { id: 'z15', name: 'Jägermeister/Fernet B', price: 360.00 },
+                { id: 'z16', name: 'Campari', price: 360.00 },
+                { id: 'z17', name: 'Ramazzotti', price: 360.00 },
+                { id: 'z18', name: 'Martini', price: 360.00 },
+                { id: 'z19', name: 'Ouzo', price: 360.00 },
+                { id: 'z20', name: 'Gorki list-pelinkovac', price: 320.00 },
+                { id: 'z21', name: 'Vinjak', price: 320.00 },
+                { id: 'z22', name: 'Aperol', price: 410.00 },
+                { id: 'z23', name: 'Aperol Spritz', price: 680.00 }
             ],
             toplo: [
-                { id: 'k1', name: 'Kratki espresso', price: 210.00 },
-                { id: 'k2', name: 'Produženi espresso', price: 210.00 },
-                { id: 'k3', name: 'Espresso sa toplim mlekom', price: 240.00 },
-                { id: 'k4', name: 'Espresso sa hladnim mlekom', price: 240.00 },
-                { id: 'k5', name: 'Kapućino', price: 280.00 },
-                { id: 'k6', name: 'Machiatto', price: 240.00 },
-                { id: 'k7', name: 'XL Espresso sa mlekom', price: 420.00 },
-                { id: 'k8', name: 'Espresso fredo', price: 360.00 },
-                { id: 'k9', name: 'Caffe latte', price: 320.00 },
-                { id: 'k10', name: 'Hladni nes', price: 280.00 },
-                { id: 'k11', name: 'Topli nes', price: 280.00 },
-                { id: 'k12', name: 'Domaća kafa', price: 200.00 },
-                { id: 'k13', name: 'Topla čokolada', price: 320.00, suboptions: [
-                    { id: 'k13-1', name: 'Crna', price: 0.00 },
-                    { id: 'k13-2', name: 'Crna sa narandžom', price: 0.00 },
-                    { id: 'k13-3', name: 'Bela sa lešnikom', price: 0.00 } 
+                { id: 'k1', name: 'Espresso', price: 210.00 },
+                { id: 'k2', name: 'Espresso sa mlekom', price: 240.00 },
+                { id: 'k3', name: 'Kapućino', price: 280.00 },
+                { id: 'k4', name: 'XL Espresso sa mlekom', price: 420.00 },
+                { id: 'k5', name: 'Espresso fredo', price: 360.00 },
+                { id: 'k6', name: 'Caffe latte', price: 320.00 },
+                { id: 'k7', name: 'Caffe latte sa soja mlekom', price: 360.00 },
+                { id: 'k8', name: 'Nesscafe', price: 280.00 },
+                { id: 'k9', name: 'Domaća kafa', price: 220.00 },
+                { id: 'k10', name: 'Topla čokolada', price: 320.00, suboptions: [
+                    { id: 'k10-1', name: 'Crna', price: 0.00 },
+                    { id: 'k10-2', name: 'Bela', price: 0.00 }
                 ]},
-                { id: 'k14', name: 'Čaj', price: 210.00, suboptions: [
-                    { id: 'k14-1', name: 'Kamilica', price: 0.00 },
-                    { id: 'k14-2', name: 'Nana', price: 0.00 },
-                    { id: 'k14-3', name: 'Hibiskus', price: 0.00 },
-                    { id: 'k14-4', name: 'Zeleni', price: 0.00 },
-                    { id: 'k14-5', name: 'Vonćni', price: 0.00 },
-                    { id: 'k14-6', name: 'Crni', price: 0.00 },
-                    { id: 'k14-7', name: 'Zimski', price: 0.00 }
+                { id: 'k11', name: 'Čaj', price: 230.00, suboptions: [
+                    { id: 'k11-1', name: 'Kamilica', price: 0.00 },
+                    { id: 'k11-2', name: 'Nana', price: 0.00 },
+                    { id: 'k11-3', name: 'Hibiskus', price: 0.00 },
+                    { id: 'k11-4', name: 'Zeleni', price: 0.00 },
+                    { id: 'k11-5', name: 'Voćni', price: 0.00 },
+                    { id: 'k11-6', name: 'Crni', price: 0.00 },
+                    { id: 'k11-7', name: 'Zimski', price: 0.00 }
                 ] },
-                { id: 'k15', name: 'Ronnefeldt LeafCup', price: 280.00 },
-                { id: 'k16', name: 'Med', price: 40.00 },
-                { id: 'k19', name: 'Sojino Mleko', price: 110.00 },
-                { id: 'k20', name: 'Šlag', price: 110.00 }
+                { id: 'k12', name: 'Ronnefeldt LeafCup', price: 310.00, suboptions: [
+                    { id: 'k12-1', name: 'Winter harmony', price: 0.00 },
+                    { id: 'k12-2', name: 'Lemon fresh', price: 0.00 },
+                    { id: 'k12-3', name: 'Morgentau', price: 0.00 }
+                ] },
+                { id: 'k13', name: 'Med', price: 50.00 },
+                { id: 'k14', name: 'Sojino Mleko', price: 110.00 },
+                { id: 'k15', name: 'Limun uz piće', price: 220.00 }
             ],
             voda: [
-                { id: 'a1', name: 'Aqua Viva 0,25l', price: 210.00 },
+                { id: 'a1', name: 'Aqua Viva 0,25l', price: 260.00 },
                 { id: 'a2', name: 'Aqua Viva 1l', price: 390.00 },
-                { id: 'a3', name: 'Voda Voda 0,75l', price: 390.00 },
-                { id: 'a4', name: 'Knjaz Miloš 0.25l', price: 210.00 }
+                { id: 'a3', name: 'Knjaz Miloš 0.25l', price: 260.00 },
+                { id: 'a4', name: 'Knjaz Miloš limun/mandarina 0.33l', price: 330.00 }
             ],
             sokovi: [
-                { id: 's1', name: 'Orangina', price: 350.00 },
-                { id: 's2', name: 'Cockta', price: 280.00 },
-                { id: 's3', name: 'Pepsi', price: 280.00 },
-                { id: 's4', name: 'Pepsi max', price: 280.00 },
-                { id: 's5', name: 'Mirinda', price: 280.00 },
-                { id: 's6', name: '7UP', price: 280.00 },
-                { id: 's7', name: 'Bitter lemon', price: 280.00 },
-                { id: 's8', name: 'Tonic', price: 280.00 },
-                { id: 's9', name: 'Bravo sok flašica', price: 330.00, suboptions: [
-                    { id: 's9-1', name: 'Narandža', price: 0.00 },
-                    { id: 's9-2', name: 'Breskva', price: 0.00 },
-                    { id: 's9-3', name: 'Jabuka', price: 0.00 },
-                    { id: 's9-4', name: 'Jagoda', price: 0.00 },
-                    { id: 's9-5', name: 'Crna ribizla', price: 0.00 }
+                { id: 's1', name: 'Orangina', price: 390.00 },
+                { id: 's2', name: 'Cockta', price: 320.00 },
+                { id: 's3', name: 'Cockta zero', price: 320.00 },
+                { id: 's4', name: 'Pepsi', price: 320.00 },
+                { id: 's5', name: 'Pepsi max', price: 320.00 },
+                { id: 's6', name: 'Mirinda', price: 320.00 },
+                { id: 's7', name: '7UP', price: 320.00 },
+                { id: 's8', name: 'Bitter lemon', price: 320.00 },
+                { id: 's9', name: 'Tonic', price: 320.00 },
+                { id: 's10', name: 'Bravo sok flašica', price: 360.00, suboptions: [
+                    { id: 's10-1', name: 'Jabuka', price: 0.00 },
+                    { id: 's10-2', name: 'Jagoda', price: 0.00 },
+                    { id: 's10-3', name: 'Breskva', price: 0.00 },
+                    { id: 's10-4', name: 'Crna ribizla', price: 0.00 },
+                    { id: 's10-5', name: 'Narandža', price: 0.00 }
                 ]},
-                { id: 's10', name: 'Cedevita', price: 300.00 },
-                { id: 's11', name: 'Guarana', price: 300.00 }
-            ],
-            cedjeno: [
-                { id: 'c1', name: 'Limunada', price: 330.00 },
-                { id: 'c2', name: 'Ceđena pomorandža', price: 380.00 },
-                { id: 'c3', name: 'Ceđeni grejp', price: 410.00 },
-                { id: 'c4', name: 'Ceđeni mix', price: 430.00 }
+                { id: 's11', name: 'San Benedetto Ice Tea', price: 350.00, suboptions: [
+                    { id: 's11-1', name: 'Limun', price: 0.00 },
+                    { id: 's11-2', name: 'Breskva', price: 0.00 }
+                ]},
+                { id: 's12', name: 'Cedevita', price: 330.00, suboptions: [
+                    { id: 's12-1', name: 'Narandža', price: 0.00 },
+                    { id: 's12-2', name: 'Limun', price: 0.00 },
+                    { id: 's12-3', name: 'Mango-Ananas', price: 0.00 },
+                    { id: 's12-4', name: 'Lemon grass', price: 0.00 }
+                ]},
+                { id: 's13', name: 'Guarana', price: 330.00 },
+                { id: 's14', name: 'Limunada', price: 360.00 }
             ],
             supe: [
                 { id: 'm1', name: 'Pileća', price: 190.00 },
                 { id: 'm2', name: 'Povrće', price: 190.00 },
-                { id: 'm3', name: 'Paradajz', price: 190.00 },
-                { id: 'm4', name: 'Pečurke', price: 190.00 },
-                { id: 'm5', name: 'Nudle piletina', price: 220.00 },
-                { id: 'm6', name: 'Nudle povrće', price: 220.00 },
-                { id: 'm7', name: 'Nudle govedina', price: 220.00 }
+                { id: 'm3', name: 'Nudle piletina', price: 220.00 },
+                { id: 'm4', name: 'Nudle govedina', price: 220.00 }
             ],
             grickalice: [
-                { id: 'g1', name: 'Kikiriki', price: 110.00 },
-                { id: 'g2', name: 'Mali čips', price: 110.00 },
-                { id: 'g3', name: 'Veliki čips', price: 210.00 },
-                { id: 'g4', name: 'Kokice', price: 180.00 },
-                { id: 'g4', name: '7 Days kroasan', price: 110.00 }
+                { id: 'g1', name: 'Kikiriki 40g', price: 120.00 },
+                { id: 'g2', name: 'Kikiriki 100g', price: 220.00 },
+                { id: 'g3', name: 'Pikant kikiriki 80g', price: 220.00 },
+                { id: 'g4', name: 'Čips 40g', price: 120.00 },
+                { id: 'g5', name: 'Čips 90g', price: 220.00 },
+                { id: 'g6', name: 'Kokice', price: 180.00 }
             ]
         };
         
